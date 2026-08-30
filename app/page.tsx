@@ -25,7 +25,7 @@ export default function Home() {
           <Link href="/planning">📅 Planning</Link>
           <Link href="/monitoring">📊 Monitoring</Link>
           <Link href="/performance">🏆 Performance</Link>
-          <button disabled>⚙️ Data</button>
+          <Link href="/data">⚙️ Data</Link>
         </nav>
       </aside>
 
