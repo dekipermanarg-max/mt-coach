@@ -24,7 +24,7 @@ export default function Home() {
           <Link className="active" href="/">🏠 Dashboard</Link>
           <Link href="/planning">📅 Planning</Link>
           <Link href="/monitoring">📊 Monitoring</Link>
-          <button disabled>🏆 Performance</button>
+          <Link href="/performance">🏆 Performance</Link>
           <button disabled>⚙️ Data</button>
         </nav>
       </aside>
@@ -47,7 +47,7 @@ export default function Home() {
 
         <section className="section"><div className="section-head"><h2>⚠️ Needs Attention</h2></div><div className="attention">
           <div className="alert"><div><strong>3 sesi</strong><small>Admin belum lengkap</small></div><Link className="badge red" href="/monitoring">Lihat Sesi →</Link></div>
-          <div className="alert"><div><strong>2 MT</strong><small>Performance di bawah 90%</small></div><Link className="badge yellow" href="/monitoring">Lihat MT →</Link></div>
+          <div className="alert"><div><strong>2 MT</strong><small>Performance di bawah 90%</small></div><Link className="badge yellow" href="/performance">Lihat MT →</Link></div>
           <div className="alert"><div><strong>LD</strong><small>Target minggu ini sudah tercapai</small></div><span className="badge green">4 / 4</span></div>
         </div></section>
 
