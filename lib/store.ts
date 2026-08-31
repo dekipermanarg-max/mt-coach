@@ -1,7 +1,17 @@
 export type MT = { id: number; name: string; branch: string; status: "Active" | "Inactive" };
 export type Rombel = { id: number; name: string; level: string; branch: string; status: "Active" | "Inactive" };
 export type SessionStatus = "Planned" | "Changed" | "Cancelled" | "Realized";
-export type Session = { id: number; date: string; time: string; mt: string; rombel: string; type: string; status: SessionStatus };
+export type Session = {
+  id: number;
+  date: string;
+  time: string;
+  mt: string;
+  rombel: string;
+  type: string;
+  status: SessionStatus;
+  auviTv?: boolean;
+  ld?: boolean;
+};
 
 const seedMT: MT[] = [
   { id: 1, name: "Deki", branch: "Tarandam", status: "Active" },
@@ -19,10 +29,10 @@ const seedRombel: Rombel[] = [
 ];
 
 const seedSessions: Session[] = [
-  { id: 1, date: "Senin, 31 Aug", time: "08.00–09.30", mt: "Deki", rombel: "6 SD A", type: "KBM", status: "Realized" },
-  { id: 2, date: "Senin, 31 Aug", time: "10.00–11.30", mt: "Farah", rombel: "7 SMP A", type: "KBM", status: "Realized" },
-  { id: 3, date: "Senin, 31 Aug", time: "13.00–14.30", mt: "Yogi", rombel: "8 SMP A", type: "KBM", status: "Changed" },
-  { id: 4, date: "Selasa, 1 Sep", time: "09.00–10.30", mt: "Ariel", rombel: "10 SMA A", type: "KBM", status: "Planned" },
+  { id: 1, date: "Senin, 31 Aug", time: "08.00–09.30", mt: "Deki", rombel: "6 SD A", type: "KBM", status: "Realized", auviTv: true },
+  { id: 2, date: "Senin, 31 Aug", time: "10.00–11.30", mt: "Farah", rombel: "7 SMP A", type: "KBM", status: "Realized", auviTv: true },
+  { id: 3, date: "Senin, 31 Aug", time: "13.00–14.30", mt: "Yogi", rombel: "8 SMP A", type: "KBM", status: "Changed", auviTv: false },
+  { id: 4, date: "Selasa, 1 Sep", time: "09.00–10.30", mt: "Ariel", rombel: "10 SMA A", type: "KBM", status: "Planned", auviTv: true, ld: true },
 ];
 
 const keys = { mt: "mt-coach-mt", rombel: "mt-coach-rombel", sessions: "mt-coach-sessions" };
