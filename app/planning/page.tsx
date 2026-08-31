@@ -3,12 +3,22 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { getMTs, getRombels, MT, Rombel, Session } from "../../lib/store";
 
-const DAYS = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
-const DRAFT_KEY = "mt-coach-weekly-planning-draft-v1";
+const DAYS = [
+  { name: "Senin", date: "31 Agu 2026" }, { name: "Selasa", date: "1 Sep 2026" },
+  { name: "Rabu", date: "2 Sep 2026" }, { name: "Kamis", date: "3 Sep 2026" },
+  { name: "Jumat", date: "4 Sep 2026" }, { name: "Sabtu", date: "5 Sep 2026" },
+  { name: "Minggu", date: "6 Sep 2026" },
+];
+const BRANCHES = [
+  "Bukittinggi - Jambu Air", "Bukittinggi - Manggis Ganting", "Painan - Pagaruyung",
+  "Payakumbuh - Simpang Benteng", "Solok - Pandan", "Padang - Gajah Mada",
+  "Padang - S. Parman", "Padang - Sutomo", "Padang - Tarandam", "Padang - Ujung Gurun",
+];
+const DRAFT_KEY = "mt-coach-weekly-planning-draft-v2";
 
 export default function PlanningPage() {
-  const [week, setWeek] = useState("Week 36 · 31 Aug – 6 Sep 2026");
-  const [day, setDay] = useState("Senin");
+  const [day, setDay] = useState(DAYS[0].name);
+  const [branch, setBranch] = useState(BRANCHES[0]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [mts, setMts] = useState<MT[]>([]);
   const [rombels, setRombels] = useState<Rombel[]>([]);
@@ -24,116 +34,78 @@ export default function PlanningPage() {
   useEffect(() => {
     const activeMTs = getMTs().filter((item) => item.status === "Active");
     const activeRombels = getRombels().filter((item) => item.status === "Active");
-    setMts(activeMTs);
-    setRombels(activeRombels);
+    setMts(activeMTs); setRombels(activeRombels);
     if (activeMTs[0]) setMt(activeMTs[0].name);
     if (activeRombels[0]) setRombel(activeRombels[0].name);
-
     try {
       const saved = localStorage.getItem(DRAFT_KEY);
       if (saved) {
-        const parsed = JSON.parse(saved) as { week?: string; sessions?: Session[]; status?: "Draft" | "Finalized" };
-        if (parsed.week === week && Array.isArray(parsed.sessions)) setSessions(parsed.sessions);
+        const parsed = JSON.parse(saved) as { sessions?: Session[]; status?: "Draft" | "Finalized" };
+        if (Array.isArray(parsed.sessions)) setSessions(parsed.sessions);
         if (parsed.status === "Finalized") setStatus("Finalized");
       }
     } catch {}
-  }, [week]);
+  }, []);
 
-  const visibleSessions = useMemo(
-    () => sessions.filter((s) => s.date === day),
-    [sessions, day]
-  );
-
-  const totalRombels = new Set(sessions.map((s) => s.rombel)).size;
-  const auviRombels = new Set(sessions.filter((s) => s.auviTv).map((s) => s.rombel)).size;
+  const selectedDay = DAYS.find((item) => item.name === day) ?? DAYS[0];
+  const visibleSessions = useMemo(() => sessions.filter((s) => s.date === day && (s as Session & { branch?: string }).branch === branch), [sessions, day, branch]);
+  const branchSessions = useMemo(() => sessions.filter((s) => (s as Session & { branch?: string }).branch === branch), [sessions, branch]);
+  const totalRombels = new Set(branchSessions.map((s) => s.rombel)).size;
+  const auviRombels = new Set(branchSessions.filter((s) => s.auviTv).map((s) => s.rombel)).size;
   const auviCoverage = totalRombels ? Math.round((auviRombels / totalRombels) * 100) : 0;
-  const ldCount = sessions.filter((s) => s.ld).length;
+  const ldCount = branchSessions.filter((s) => s.ld).length;
 
   function addSession(e: FormEvent) {
     e.preventDefault();
     if (status === "Finalized" || !mt || !rombel || !mapel.trim()) return;
-    const next: Session = {
-      id: Date.now(),
-      date: day,
-      time: "",
-      mt,
-      rombel,
-      type: type === "KBM" ? mapel.trim() : type,
-      status: "Planned",
-      auviTv,
-      ld,
-    };
+    const next = {
+      id: Date.now(), date: day, time: "", mt, rombel, type: type === "KBM" ? mapel.trim() : type,
+      status: "Planned" as const, auviTv, ld, branch,
+    } as Session & { branch: string };
     setSessions((prev) => [...prev, next]);
-    setMapel("");
-    setAuviTv(false);
-    setLd(false);
-    setMessage("");
+    setMapel(""); setAuviTv(false); setLd(false); setMessage("");
   }
 
   function deleteSession(id: number) {
-    if (status === "Finalized") return;
-    setSessions((prev) => prev.filter((s) => s.id !== id));
+    if (status !== "Finalized") setSessions((prev) => prev.filter((s) => s.id !== id));
   }
 
   function saveDraft() {
-    const payload = { week, sessions, status: "Draft" as const, savedAt: new Date().toISOString() };
-    localStorage.setItem(DRAFT_KEY, JSON.stringify(payload));
-    setStatus("Draft");
-    setMessage("Draft berhasil disimpan.");
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({ sessions, status: "Draft", savedAt: new Date().toISOString() }));
+    setStatus("Draft"); setMessage("Draft berhasil disimpan.");
   }
 
   function finalize() {
-    localStorage.setItem(DRAFT_KEY, JSON.stringify({ week, sessions, status: "Finalized" as const, savedAt: new Date().toISOString() }));
-    setStatus("Finalized");
-    setMessage("Weekly Planning berhasil difinalisasi.");
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({ sessions, status: "Finalized", savedAt: new Date().toISOString() }));
+    setStatus("Finalized"); setMessage("Weekly Planning berhasil difinalisasi.");
   }
 
   return (
     <div className="page-wrap">
       <div className="page-head">
-        <div>
-          <h1>Weekly Planning</h1>
-          <p>Coach input seluruh sesi secara manual, lalu simpan sebagai Draft.</p>
-        </div>
-        <span className={`badge ${status === "Draft" ? "yellow" : "green"}`} style={{ padding: "9px 14px" }}>
-          {status === "Draft" ? "📝 Draft" : "🔒 Finalized"}
-        </span>
+        <div><h1>Weekly Planning</h1><p>Coach input seluruh sesi secara manual, lalu simpan sebagai Draft.</p></div>
+        <span className={`badge ${status === "Draft" ? "yellow" : "green"}`} style={{ padding: "9px 14px" }}>{status === "Draft" ? "📝 Draft" : "🔒 Finalized"}</span>
       </div>
 
-      <div className="planning-filters">
-        <label>Week
-          <select value={week} onChange={(e) => setWeek(e.target.value)} disabled={status === "Finalized"}>
-            <option>Week 36 · 31 Aug – 6 Sep 2026</option>
-            <option>Week 37 · 7 – 13 Sep 2026</option>
-            <option>Week 38 · 14 – 20 Sep 2026</option>
-          </select>
-        </label>
-        <label>Cabang
-          <select defaultValue="Tarandam"><option>Tarandam</option></select>
-        </label>
+      <div className="card" style={{ marginBottom: 18 }}>
+        <label>Cabang<select value={branch} onChange={(e) => setBranch(e.target.value)} disabled={status === "Finalized"}>{BRANCHES.map((item) => <option key={item}>{item}</option>)}</select></label>
       </div>
 
       <div className="grid" style={{ marginBottom: 18 }}>
-        <div className="card"><div className="kpi-label">Total Session</div><div className="kpi-value">{sessions.length}</div><div className="kpi-note">Input manual minggu ini</div></div>
+        <div className="card"><div className="kpi-label">Total Session</div><div className="kpi-value">{branchSessions.length}</div><div className="kpi-note">Input manual</div></div>
         <div className="card"><div className="kpi-label">AuVi TV Coverage</div><div className="kpi-value">{auviCoverage}%</div><div className="kpi-note">{auviRombels}/{totalRombels} rombel · target ≥ 50%</div></div>
         <div className="card"><div className="kpi-label">LD</div><div className="kpi-value">{ldCount}/10</div><div className="kpi-note">Target 10 sesi</div></div>
       </div>
 
       <div className="card" style={{ marginBottom: 18 }}>
-        <div className="modal-head" style={{ marginBottom: 14 }}>
-          <div><h2>Pilih Hari</h2><p>Pilih hari, lalu masukkan seluruh sesi pada hari tersebut.</p></div>
-        </div>
+        <div className="modal-head" style={{ marginBottom: 14 }}><div><h2>Pilih Hari</h2><p>Pilih hari sekaligus melihat tanggalnya.</p></div></div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-          {DAYS.map((item) => (
-            <button key={item} onClick={() => setDay(item)} className={day === item ? "primary-btn" : "secondary-btn"} disabled={status === "Finalized" && day !== item}>{item}</button>
-          ))}
+          {DAYS.map((item) => <button key={item.name} onClick={() => setDay(item.name)} className={day === item.name ? "primary-btn" : "secondary-btn"} disabled={status === "Finalized" && day !== item.name}><strong>{item.name}</strong><span style={{ display: "block", fontSize: 12, opacity: .8 }}>{item.date}</span></button>)}
         </div>
       </div>
 
       <form className="card" onSubmit={addSession} style={{ marginBottom: 18 }}>
-        <div className="modal-head" style={{ marginBottom: 14 }}>
-          <div><h2>Input Sesi — {day}</h2><p>Tidak perlu memasukkan jam.</p></div>
-        </div>
+        <div className="modal-head" style={{ marginBottom: 14 }}><div><h2>Input Sesi — {selectedDay.name}, {selectedDay.date}</h2><p>Semua sesi diinput manual. Jam tidak diperlukan.</p></div></div>
         <div className="planning-filters" style={{ marginBottom: 0 }}>
           <label>MT<select value={mt} onChange={(e) => setMt(e.target.value)} disabled={status === "Finalized"} required>{mts.map((item) => <option key={item.id}>{item.name}</option>)}</select></label>
           <label>Rombel<select value={rombel} onChange={(e) => setRombel(e.target.value)} disabled={status === "Finalized"} required>{rombels.map((item) => <option key={item.id}>{item.name}</option>)}</select></label>
@@ -148,28 +120,12 @@ export default function PlanningPage() {
       </form>
 
       <div className="planning-table-wrap">
-        <table>
-          <thead><tr><th>Hari</th><th>MT</th><th>Rombel</th><th>Mapel / Jenis</th><th>AuVi TV</th><th>LD</th><th>Aksi</th></tr></thead>
-          <tbody>
-            {visibleSessions.length === 0 ? <tr><td colSpan={7} style={{ textAlign: "center", padding: 36, color: "#64748b" }}>Belum ada sesi untuk {day}. Silakan input sesi di atas.</td></tr> : visibleSessions.map((session) => (
-              <tr key={session.id}>
-                <td>{session.date}</td><td><strong>{session.mt}</strong></td><td>{session.rombel}</td><td>{session.type}</td>
-                <td><span className={`badge ${session.auviTv ? "green" : "blue"}`}>{session.auviTv ? "✓ Assigned" : "—"}</span></td>
-                <td><span className={`badge ${session.ld ? "green" : "blue"}`}>{session.ld ? "✓ Assigned" : "—"}</span></td>
-                <td><button onClick={() => deleteSession(session.id)} disabled={status === "Finalized"} style={{ color: "#dc2626" }}>Hapus</button></td>
-              </tr>
-            ))}
-          </tbody>
+        <table><thead><tr><th>Hari / Tanggal</th><th>MT</th><th>Rombel</th><th>Mapel / Jenis</th><th>AuVi TV</th><th>LD</th><th>Aksi</th></tr></thead>
+          <tbody>{visibleSessions.length === 0 ? <tr><td colSpan={7} style={{ textAlign: "center", padding: 36, color: "#64748b" }}>Belum ada sesi untuk {selectedDay.name}. Silakan input sesi di atas.</td></tr> : visibleSessions.map((session) => <tr key={session.id}><td>{selectedDay.name}<br /><small>{selectedDay.date}</small></td><td><strong>{session.mt}</strong></td><td>{session.rombel}</td><td>{session.type}</td><td><span className={`badge ${session.auviTv ? "green" : "blue"}`}>{session.auviTv ? "✓ Assigned" : "—"}</span></td><td><span className={`badge ${session.ld ? "green" : "blue"}`}>{session.ld ? "✓ Assigned" : "—"}</span></td><td><button onClick={() => deleteSession(session.id)} disabled={status === "Finalized"} style={{ color: "#dc2626" }}>Hapus</button></td></tr>)}</tbody>
         </table>
       </div>
 
-      <div className="finalize-bar" style={{ marginTop: 18 }}>
-        <div><strong>Planning {week.split(" · ")[0]}</strong><small>{message || "Semua sesi yang diinput belum final sampai Coach melakukan finalisasi."}</small></div>
-        <div style={{ display: "flex", gap: 10 }}>
-          <button className="secondary-btn" onClick={saveDraft} disabled={status === "Finalized"}>📝 Simpan sebagai Draft</button>
-          <button className="primary-btn" onClick={finalize} disabled={status === "Finalized" || sessions.length === 0}>🔒 Finalize Planning</button>
-        </div>
-      </div>
+      <div className="finalize-bar" style={{ marginTop: 18 }}><div><strong>{branch} · Planning Mingguan</strong><small>{message || "Setelah input sesi, simpan sebagai Draft."}</small></div><div style={{ display: "flex", gap: 10 }}><button type="button" className="secondary-btn" onClick={saveDraft} disabled={status === "Finalized"}>📝 Simpan sebagai Draft</button><button type="button" className="primary-btn" onClick={finalize} disabled={status === "Finalized" || sessions.length === 0}>🔒 Finalize Planning</button></div></div>
     </div>
   );
 }
