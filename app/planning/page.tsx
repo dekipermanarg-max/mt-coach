@@ -81,51 +81,49 @@ export default function PlanningPage() {
 
   return (
     <div className="page-wrap">
-      <div className="page-head">
-        <div><h1>Weekly Planning</h1><p>Coach input seluruh sesi secara manual, lalu simpan sebagai Draft.</p></div>
-        <span className={`badge ${status === "Draft" ? "yellow" : "green"}`} style={{ padding: "9px 14px" }}>{status === "Draft" ? "📝 Draft" : "🔒 Finalized"}</span>
-      </div>
-
-      <div className="card" style={{ marginBottom: 18 }}>
-        <label>Cabang<select value={branch} onChange={(e) => setBranch(e.target.value)} disabled={status === "Finalized"}>{BRANCHES.map((item) => <option key={item}>{item}</option>)}</select></label>
-      </div>
-
-      <div className="grid" style={{ marginBottom: 18 }}>
-        <div className="card"><div className="kpi-label">Total Session</div><div className="kpi-value">{branchSessions.length}</div><div className="kpi-note">Input manual</div></div>
-        <div className="card"><div className="kpi-label">AuVi TV Coverage</div><div className="kpi-value">{auviCoverage}%</div><div className="kpi-note">{auviRombels}/{totalRombels} rombel · target ≥ 50%</div></div>
-        <div className="card"><div className="kpi-label">LD</div><div className="kpi-value">{ldCount}/10</div><div className="kpi-note">Target 10 sesi</div></div>
-      </div>
-
-      <div className="card" style={{ marginBottom: 18 }}>
-        <div className="modal-head" style={{ marginBottom: 14 }}><div><h2>Pilih Hari</h2><p>Pilih tanggal menggunakan kalender.</p></div></div>
-        <label style={{ display: "block", maxWidth: 360 }}>Tanggal
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} disabled={status === "Finalized"} style={{ fontSize: 16, fontWeight: 600 }} />
-        </label>
-        <div style={{ marginTop: 10, fontWeight: 700, color: "#334155" }}>{selectedDateLabel}</div>
-      </div>
-
-      <form className="card" onSubmit={addSession} style={{ marginBottom: 18 }}>
-        <div className="modal-head" style={{ marginBottom: 14 }}><div><h2>Input Sesi — {selectedDateLabel}</h2><p>Semua sesi diinput manual. Jam tidak diperlukan.</p></div></div>
-        <div className="planning-filters" style={{ marginBottom: 0 }}>
-          <label>MT<select value={mt} onChange={(e) => setMt(e.target.value)} disabled={status === "Finalized"} required>{mts.map((item) => <option key={item.id}>{item.name}</option>)}</select></label>
-          <label>Rombel<select value={rombel} onChange={(e) => setRombel(e.target.value)} disabled={status === "Finalized"} required>{rombels.map((item) => <option key={item.id}>{item.name}</option>)}</select></label>
-          <label>Mapel<input value={mapel} onChange={(e) => setMapel(e.target.value)} placeholder="Contoh: Matematika" disabled={status === "Finalized"} required /></label>
-          <label>Jenis Sesi<select value={type} onChange={(e) => setType(e.target.value)} disabled={status === "Finalized"}><option>KBM</option><option>AuVi TV</option><option>LD</option><option>Other</option></select></label>
+      <section className="planning-hero">
+        <div className="planning-hero-row">
+          <div><div className="eyebrow">MT COACH · OPERATIONS</div><h1>Weekly Planning</h1><p>Susun seluruh sesi secara manual, simpan sebagai Draft, lalu finalisasi saat sudah siap.</p></div>
+          <span className="badge planning-status">{status === "Draft" ? "📝 Draft" : "🔒 Finalized"}</span>
         </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 16, marginTop: 14 }}>
-          <label style={{ display: "flex", alignItems: "center", gap: 8 }}><input type="checkbox" checked={auviTv} onChange={(e) => setAuviTv(e.target.checked)} disabled={status === "Finalized"} /> AuVi TV</label>
-          <label style={{ display: "flex", alignItems: "center", gap: 8 }}><input type="checkbox" checked={ld} onChange={(e) => setLd(e.target.checked)} disabled={status === "Finalized"} /> LD</label>
+      </section>
+
+      <section className="planning-control-card">
+        <div className="control-box"><span className="control-label">Cabang</span><select className="branch-select" value={branch} onChange={(e) => setBranch(e.target.value)} disabled={status === "Finalized"}>{BRANCHES.map((item) => <option key={item}>{item}</option>)}</select></div>
+        <div className="control-box"><span className="control-label">Tanggal Planning</span><div className="date-control"><div className="date-icon">📅</div><input className="date-input" type="date" value={date} onChange={(e) => setDate(e.target.value)} disabled={status === "Finalized"} /></div><div className="date-caption">{selectedDateLabel}</div></div>
+      </section>
+
+      <div className="grid planning-kpis">
+        <div className="card planning-kpi"><div className="planning-kpi-top"><div className="kpi-label">Total Session</div><div className="kpi-mini-icon">📋</div></div><div className="kpi-value">{branchSessions.length}</div><div className="kpi-note">Semua sesi input manual</div></div>
+        <div className="card planning-kpi"><div className="planning-kpi-top"><div className="kpi-label">AuVi TV Coverage</div><div className="kpi-mini-icon">🎥</div></div><div className="kpi-value">{auviCoverage}%</div><div className="kpi-note">{auviRombels}/{totalRombels} rombel · target ≥ 50%</div></div>
+        <div className="card planning-kpi"><div className="planning-kpi-top"><div className="kpi-label">LD</div><div className="kpi-mini-icon">👥</div></div><div className="kpi-value">{ldCount}<span style={{ fontSize: 14, color: "#94a3b8", marginLeft: 5 }}>/ 10</span></div><div className="kpi-note">Target 10 sesi per minggu</div></div>
+      </div>
+
+      <form className="card input-card" onSubmit={addSession}>
+        <div className="section-title"><div><h2>Tambah Sesi</h2><p>Input sesi untuk <strong>{selectedDateLabel}</strong>. Jam tidak diperlukan.</p></div><span className="section-chip">MANUAL INPUT</span></div>
+        <div className="planning-form-grid">
+          <label className="planning-field"><span>MT</span><select value={mt} onChange={(e) => setMt(e.target.value)} disabled={status === "Finalized"} required>{mts.map((item) => <option key={item.id}>{item.name}</option>)}</select></label>
+          <label className="planning-field"><span>Rombel</span><select value={rombel} onChange={(e) => setRombel(e.target.value)} disabled={status === "Finalized"} required>{rombels.map((item) => <option key={item.id}>{item.name}</option>)}</select></label>
+          <label className="planning-field"><span>Mapel</span><input value={mapel} onChange={(e) => setMapel(e.target.value)} placeholder="Contoh: Matematika" disabled={status === "Finalized"} required /></label>
+          <label className="planning-field"><span>Jenis Sesi</span><select value={type} onChange={(e) => setType(e.target.value)} disabled={status === "Finalized"}><option>KBM</option><option>AuVi TV</option><option>LD</option><option>Other</option></select></label>
         </div>
-        <button className="primary-btn" type="submit" disabled={status === "Finalized"} style={{ marginTop: 16 }}>＋ Tambah Sesi</button>
+        <div className="planning-options">
+          <label className="option-pill"><input type="checkbox" checked={auviTv} onChange={(e) => setAuviTv(e.target.checked)} disabled={status === "Finalized"} /> 🎥 AuVi TV</label>
+          <label className="option-pill"><input type="checkbox" checked={ld} onChange={(e) => setLd(e.target.checked)} disabled={status === "Finalized"} /> 👥 LD</label>
+        </div>
+        <button className="add-session-btn" type="submit" disabled={status === "Finalized"}>＋ Tambah Sesi</button>
       </form>
 
-      <div className="planning-table-wrap">
-        <table><thead><tr><th>Hari / Tanggal</th><th>MT</th><th>Rombel</th><th>Mapel / Jenis</th><th>AuVi TV</th><th>LD</th><th>Aksi</th></tr></thead>
-          <tbody>{visibleSessions.length === 0 ? <tr><td colSpan={7} style={{ textAlign: "center", padding: 36, color: "#64748b" }}>Belum ada sesi untuk tanggal ini. Silakan input sesi di atas.</td></tr> : visibleSessions.map((session) => <tr key={session.id}><td>{selectedDateLabel}</td><td><strong>{session.mt}</strong></td><td>{session.rombel}</td><td>{session.type}</td><td><span className={`badge ${session.auviTv ? "green" : "blue"}`}>{session.auviTv ? "✓ Assigned" : "—"}</span></td><td><span className={`badge ${session.ld ? "green" : "blue"}`}>{session.ld ? "✓ Assigned" : "—"}</span></td><td><button onClick={() => deleteSession(session.id)} disabled={status === "Finalized"} style={{ color: "#dc2626" }}>Hapus</button></td></tr>)}</tbody>
-        </table>
-      </div>
+      <section className="card planning-table-card">
+        <div className="planning-table-head"><div><h2>Daftar Sesi</h2><p>{branch} · {selectedDateLabel}</p></div><span className="section-chip">{visibleSessions.length} sesi</span></div>
+        <div className="planning-table-wrap">
+          <table><thead><tr><th>MT</th><th>Rombel</th><th>Mapel / Jenis</th><th>AuVi TV</th><th>LD</th><th>Aksi</th></tr></thead>
+            <tbody>{visibleSessions.length === 0 ? <tr><td colSpan={6}><div className="empty-state"><div className="empty-icon">📋</div><strong>Belum ada sesi</strong><p>Tambahkan sesi pertama untuk tanggal ini melalui form di atas.</p></div></td></tr> : visibleSessions.map((session) => <tr key={session.id}><td><span className="table-primary">{session.mt}</span></td><td>{session.rombel}</td><td><span className="table-primary">{session.type}</span></td><td><span className={`badge ${session.auviTv ? "green" : "blue"}`}>{session.auviTv ? "✓ Assigned" : "— Belum"}</span></td><td><span className={`badge ${session.ld ? "green" : "blue"}`}>{session.ld ? "✓ Assigned" : "— Belum"}</span></td><td><button className="row-delete" onClick={() => deleteSession(session.id)} disabled={status === "Finalized"}>Hapus</button></td></tr>)}</tbody>
+          </table>
+        </div>
+      </section>
 
-      <div className="finalize-bar" style={{ marginTop: 18 }}><div><strong>{branch} · Planning Mingguan</strong><small>{message || "Setelah input sesi, simpan sebagai Draft."}</small></div><div style={{ display: "flex", gap: 10 }}><button type="button" className="secondary-btn" onClick={saveDraft} disabled={status === "Finalized"}>📝 Simpan sebagai Draft</button><button type="button" className="primary-btn" onClick={finalize} disabled={status === "Finalized" || sessions.length === 0}>🔒 Finalize Planning</button></div></div>
+      <div className="finalize-bar"><div><strong>{branch}</strong><small>{message || "Input sesi selesai? Simpan dulu sebagai Draft."}</small></div><div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}><button type="button" className="secondary-btn" onClick={saveDraft} disabled={status === "Finalized"}>📝 Simpan sebagai Draft</button><button type="button" className="primary-btn" onClick={finalize} disabled={status === "Finalized" || sessions.length === 0}>🔒 Finalize Planning</button></div></div>
     </div>
   );
 }
