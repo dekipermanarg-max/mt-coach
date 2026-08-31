@@ -10,6 +10,7 @@ const SESSION_TYPES = ["KBM", "Klinik PR", "Trial Class"] as const;
 type MasterRow = { id: string; name: string };
 type PlanningRow = { id: string; planning_date: string; jenis_sesi: string; auvi_tv: boolean; ld: boolean; status: string; mt?: { name: string } | null; rombel?: { name: string } | null; mapel?: { name: string } | null };
 function formatDate(date: string) { return new Intl.DateTimeFormat("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(new Date(`${date}T00:00:00`)); }
+function normalizeRelation(value: unknown): { name: string } | null { if (Array.isArray(value)) return (value[0] as { name: string } | undefined) || null; return (value as { name: string } | null) || null; }
 
 export default function PlanningPage() {
   const [date, setDate] = useState(DEFAULT_DATE); const [branch, setBranch] = useState(BRANCHES[0]);
@@ -35,7 +36,7 @@ export default function PlanningPage() {
     if (!b.data) { setMessage("Cabang tidak ditemukan di database."); setLoading(false); return; }
     setBranchId(b.data.id);
     const { data, error } = await supabase.from("weekly_planning").select("id,planning_date,jenis_sesi,auvi_tv,ld,status,master_mt(name),master_rombel(name),master_mapel(name)").eq("branch_id", b.data.id).eq("planning_date", date).order("created_at");
-    if (error) setMessage(`Gagal memuat planning: ${error.message}`); else { setSessions((data || []) as PlanningRow[]); setStatus(data?.some(x => x.status === "Finalized") ? "Finalized" : "Draft"); }
+    if (error) setMessage(`Gagal memuat planning: ${error.message}`); else { const normalized = (data || []).map((row: any) => ({ ...row, mt: normalizeRelation(row.mt), rombel: normalizeRelation(row.rombel), mapel: normalizeRelation(row.mapel) })) as PlanningRow[]; setSessions(normalized); setStatus(normalized.some(x => x.status === "Finalized") ? "Finalized" : "Draft"); }
     setLoading(false);
   }
   useEffect(() => { loadMasters(); }, [branch]); useEffect(() => { loadSessions(); }, [branch, date]);
