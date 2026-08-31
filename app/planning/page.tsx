@@ -3,21 +3,20 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { getMTs, getRombels, MT, Rombel, Session } from "../../lib/store";
 
-const DAYS = [
-  { name: "Senin", date: "31 Agu 2026" }, { name: "Selasa", date: "1 Sep 2026" },
-  { name: "Rabu", date: "2 Sep 2026" }, { name: "Kamis", date: "3 Sep 2026" },
-  { name: "Jumat", date: "4 Sep 2026" }, { name: "Sabtu", date: "5 Sep 2026" },
-  { name: "Minggu", date: "6 Sep 2026" },
-];
 const BRANCHES = [
   "Bukittinggi - Jambu Air", "Bukittinggi - Manggis Ganting", "Painan - Pagaruyung",
   "Payakumbuh - Simpang Benteng", "Solok - Pandan", "Padang - Gajah Mada",
   "Padang - S. Parman", "Padang - Sutomo", "Padang - Tarandam", "Padang - Ujung Gurun",
 ];
 const DRAFT_KEY = "mt-coach-weekly-planning-draft-v2";
+const DEFAULT_DATE = "2026-08-31";
+
+function formatDate(date: string) {
+  return new Intl.DateTimeFormat("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(new Date(`${date}T00:00:00`));
+}
 
 export default function PlanningPage() {
-  const [day, setDay] = useState(DAYS[0].name);
+  const [date, setDate] = useState(DEFAULT_DATE);
   const [branch, setBranch] = useState(BRANCHES[0]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [mts, setMts] = useState<MT[]>([]);
@@ -47,8 +46,8 @@ export default function PlanningPage() {
     } catch {}
   }, []);
 
-  const selectedDay = DAYS.find((item) => item.name === day) ?? DAYS[0];
-  const visibleSessions = useMemo(() => sessions.filter((s) => s.date === day && (s as Session & { branch?: string }).branch === branch), [sessions, day, branch]);
+  const selectedDateLabel = formatDate(date);
+  const visibleSessions = useMemo(() => sessions.filter((s) => s.date === date && (s as Session & { branch?: string }).branch === branch), [sessions, date, branch]);
   const branchSessions = useMemo(() => sessions.filter((s) => (s as Session & { branch?: string }).branch === branch), [sessions, branch]);
   const totalRombels = new Set(branchSessions.map((s) => s.rombel)).size;
   const auviRombels = new Set(branchSessions.filter((s) => s.auviTv).map((s) => s.rombel)).size;
@@ -57,9 +56,9 @@ export default function PlanningPage() {
 
   function addSession(e: FormEvent) {
     e.preventDefault();
-    if (status === "Finalized" || !mt || !rombel || !mapel.trim()) return;
+    if (status === "Finalized" || !mt || !rombel || !mapel.trim() || !date) return;
     const next = {
-      id: Date.now(), date: day, time: "", mt, rombel, type: type === "KBM" ? mapel.trim() : type,
+      id: Date.now(), date, time: "", mt, rombel, type: type === "KBM" ? mapel.trim() : type,
       status: "Planned" as const, auviTv, ld, branch,
     } as Session & { branch: string };
     setSessions((prev) => [...prev, next]);
@@ -98,14 +97,15 @@ export default function PlanningPage() {
       </div>
 
       <div className="card" style={{ marginBottom: 18 }}>
-        <div className="modal-head" style={{ marginBottom: 14 }}><div><h2>Pilih Hari</h2><p>Pilih hari sekaligus melihat tanggalnya.</p></div></div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-          {DAYS.map((item) => <button key={item.name} onClick={() => setDay(item.name)} className={day === item.name ? "primary-btn" : "secondary-btn"} disabled={status === "Finalized" && day !== item.name}><strong>{item.name}</strong><span style={{ display: "block", fontSize: 12, opacity: .8 }}>{item.date}</span></button>)}
-        </div>
+        <div className="modal-head" style={{ marginBottom: 14 }}><div><h2>Pilih Hari</h2><p>Pilih tanggal menggunakan kalender.</p></div></div>
+        <label style={{ display: "block", maxWidth: 360 }}>Tanggal
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} disabled={status === "Finalized"} style={{ fontSize: 16, fontWeight: 600 }} />
+        </label>
+        <div style={{ marginTop: 10, fontWeight: 700, color: "#334155" }}>{selectedDateLabel}</div>
       </div>
 
       <form className="card" onSubmit={addSession} style={{ marginBottom: 18 }}>
-        <div className="modal-head" style={{ marginBottom: 14 }}><div><h2>Input Sesi — {selectedDay.name}, {selectedDay.date}</h2><p>Semua sesi diinput manual. Jam tidak diperlukan.</p></div></div>
+        <div className="modal-head" style={{ marginBottom: 14 }}><div><h2>Input Sesi — {selectedDateLabel}</h2><p>Semua sesi diinput manual. Jam tidak diperlukan.</p></div></div>
         <div className="planning-filters" style={{ marginBottom: 0 }}>
           <label>MT<select value={mt} onChange={(e) => setMt(e.target.value)} disabled={status === "Finalized"} required>{mts.map((item) => <option key={item.id}>{item.name}</option>)}</select></label>
           <label>Rombel<select value={rombel} onChange={(e) => setRombel(e.target.value)} disabled={status === "Finalized"} required>{rombels.map((item) => <option key={item.id}>{item.name}</option>)}</select></label>
@@ -121,7 +121,7 @@ export default function PlanningPage() {
 
       <div className="planning-table-wrap">
         <table><thead><tr><th>Hari / Tanggal</th><th>MT</th><th>Rombel</th><th>Mapel / Jenis</th><th>AuVi TV</th><th>LD</th><th>Aksi</th></tr></thead>
-          <tbody>{visibleSessions.length === 0 ? <tr><td colSpan={7} style={{ textAlign: "center", padding: 36, color: "#64748b" }}>Belum ada sesi untuk {selectedDay.name}. Silakan input sesi di atas.</td></tr> : visibleSessions.map((session) => <tr key={session.id}><td>{selectedDay.name}<br /><small>{selectedDay.date}</small></td><td><strong>{session.mt}</strong></td><td>{session.rombel}</td><td>{session.type}</td><td><span className={`badge ${session.auviTv ? "green" : "blue"}`}>{session.auviTv ? "✓ Assigned" : "—"}</span></td><td><span className={`badge ${session.ld ? "green" : "blue"}`}>{session.ld ? "✓ Assigned" : "—"}</span></td><td><button onClick={() => deleteSession(session.id)} disabled={status === "Finalized"} style={{ color: "#dc2626" }}>Hapus</button></td></tr>)}</tbody>
+          <tbody>{visibleSessions.length === 0 ? <tr><td colSpan={7} style={{ textAlign: "center", padding: 36, color: "#64748b" }}>Belum ada sesi untuk tanggal ini. Silakan input sesi di atas.</td></tr> : visibleSessions.map((session) => <tr key={session.id}><td>{selectedDateLabel}</td><td><strong>{session.mt}</strong></td><td>{session.rombel}</td><td>{session.type}</td><td><span className={`badge ${session.auviTv ? "green" : "blue"}`}>{session.auviTv ? "✓ Assigned" : "—"}</span></td><td><span className={`badge ${session.ld ? "green" : "blue"}`}>{session.ld ? "✓ Assigned" : "—"}</span></td><td><button onClick={() => deleteSession(session.id)} disabled={status === "Finalized"} style={{ color: "#dc2626" }}>Hapus</button></td></tr>)}</tbody>
         </table>
       </div>
 
