@@ -1,65 +1,175 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { getMTs, getRombels, getSessions, saveSessions, MT, Rombel, Session } from "../../lib/store";
+import { getMTs, getRombels, MT, Rombel, Session } from "../../lib/store";
+
+const DAYS = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
+const DRAFT_KEY = "mt-coach-weekly-planning-draft-v1";
 
 export default function PlanningPage() {
+  const [week, setWeek] = useState("Week 36 · 31 Aug – 6 Sep 2026");
+  const [day, setDay] = useState("Senin");
   const [sessions, setSessions] = useState<Session[]>([]);
   const [mts, setMts] = useState<MT[]>([]);
   const [rombels, setRombels] = useState<Rombel[]>([]);
-  const [showForm, setShowForm] = useState(false);
-  const [mtFilter, setMtFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [status, setStatus] = useState<"Draft" | "Finalized">("Draft");
   const [mt, setMt] = useState("");
   const [rombel, setRombel] = useState("");
-  const [date, setDate] = useState("2026-08-31");
-  const [start, setStart] = useState("08:00");
-  const [end, setEnd] = useState("09:30");
+  const [mapel, setMapel] = useState("");
+  const [type, setType] = useState("KBM");
+  const [auviTv, setAuviTv] = useState(false);
+  const [ld, setLd] = useState(false);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
-    const loadedMTs = getMTs().filter((item) => item.status === "Active");
-    const loadedRombels = getRombels().filter((item) => item.status === "Active");
-    setMts(loadedMTs); setRombels(loadedRombels); setSessions(getSessions());
-    if (loadedMTs[0]) setMt(loadedMTs[0].name);
-    if (loadedRombels[0]) setRombel(loadedRombels[0].name);
-  }, []);
+    const activeMTs = getMTs().filter((item) => item.status === "Active");
+    const activeRombels = getRombels().filter((item) => item.status === "Active");
+    setMts(activeMTs);
+    setRombels(activeRombels);
+    if (activeMTs[0]) setMt(activeMTs[0].name);
+    if (activeRombels[0]) setRombel(activeRombels[0].name);
 
-  const visibleSessions = useMemo(() => sessions.filter((s) =>
-    (mtFilter === "all" || s.mt === mtFilter) && (statusFilter === "all" || s.status === statusFilter)
-  ), [sessions, mtFilter, statusFilter]);
+    try {
+      const saved = localStorage.getItem(DRAFT_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved) as { week?: string; sessions?: Session[]; status?: "Draft" | "Finalized" };
+        if (parsed.week === week && Array.isArray(parsed.sessions)) setSessions(parsed.sessions);
+        if (parsed.status === "Finalized") setStatus("Finalized");
+      }
+    } catch {}
+  }, [week]);
 
-  const auviCount = sessions.filter((s) => s.auviTv && s.status !== "Cancelled").length;
-  const activeRombels = rombels.length;
-  const auviCoverage = activeRombels ? Math.round((new Set(sessions.filter(s => s.auviTv && s.status !== "Cancelled").map(s => s.rombel)).size / activeRombels) * 100) : 0;
-  const ldCount = sessions.filter((s) => s.ld && s.status !== "Cancelled").length;
+  const visibleSessions = useMemo(
+    () => sessions.filter((s) => s.date === day),
+    [sessions, day]
+  );
 
-  function persist(next: Session[]) { setSessions(next); saveSessions(next); }
+  const totalRombels = new Set(sessions.map((s) => s.rombel)).size;
+  const auviRombels = new Set(sessions.filter((s) => s.auviTv).map((s) => s.rombel)).size;
+  const auviCoverage = totalRombels ? Math.round((auviRombels / totalRombels) * 100) : 0;
+  const ldCount = sessions.filter((s) => s.ld).length;
 
   function addSession(e: FormEvent) {
     e.preventDefault();
-    if (!mt || !rombel) return;
-    const label = new Date(`${date}T12:00:00`).toLocaleDateString("id-ID", { weekday: "long", day: "2-digit", month: "short" }).replace(/\./g, "");
-    const next = [...sessions, { id: Date.now(), date: label, time: `${start.replace(":", ".")}–${end.replace(":", ".")}`, mt, rombel, type: "KBM", status: "Planned" as const, auviTv: false, ld: false }];
-    persist(next); setShowForm(false);
+    if (status === "Finalized" || !mt || !rombel || !mapel.trim()) return;
+    const next: Session = {
+      id: Date.now(),
+      date: day,
+      time: "",
+      mt,
+      rombel,
+      type: type === "KBM" ? mapel.trim() : type,
+      status: "Planned",
+      auviTv,
+      ld,
+    };
+    setSessions((prev) => [...prev, next]);
+    setMapel("");
+    setAuviTv(false);
+    setLd(false);
+    setMessage("");
   }
 
-  function cancelSession(id: number) {
-    persist(sessions.map((session) => session.id === id ? { ...session, status: "Cancelled" as const } : session));
+  function deleteSession(id: number) {
+    if (status === "Finalized") return;
+    setSessions((prev) => prev.filter((s) => s.id !== id));
   }
 
-  function toggleAssignment(id: number, field: "auviTv" | "ld") {
-    persist(sessions.map((session) => session.id === id ? { ...session, [field]: !session[field] } : session));
+  function saveDraft() {
+    const payload = { week, sessions, status: "Draft" as const, savedAt: new Date().toISOString() };
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(payload));
+    setStatus("Draft");
+    setMessage("Draft berhasil disimpan.");
+  }
+
+  function finalize() {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({ week, sessions, status: "Finalized" as const, savedAt: new Date().toISOString() }));
+    setStatus("Finalized");
+    setMessage("Weekly Planning berhasil difinalisasi.");
   }
 
   return (
     <div className="page-wrap">
-      <div className="page-head"><div><h1>Weekly Planning</h1><p>Atur jadwal, assignment AuVi TV, dan LD untuk minggu berjalan.</p></div><button className="primary-btn" onClick={() => setShowForm(true)}>＋ Tambah Sesi</button></div>
-      <div className="planning-filters"><label>Week<select><option>Week 36 · 31 Aug – 6 Sep 2026</option><option>Week 35 · 24 – 30 Aug 2026</option></select></label><label>Cabang<select><option>Tarandam</option><option>Semua Cabang</option></select></label><label>MT<select value={mtFilter} onChange={(e) => setMtFilter(e.target.value)}><option value="all">Semua MT</option>{mts.map((item) => <option key={item.id}>{item.name}</option>)}</select></label><label>Status<select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}><option value="all">Semua Status</option><option value="Planned">Planned</option><option value="Realized">Realized</option><option value="Changed">Changed</option><option value="Cancelled">Cancelled</option></select></label></div>
-      <div className="planning-summary"><span><strong>{visibleSessions.length}</strong> Sessions</span><span><b className="dot green-dot" /> {sessions.filter(s => s.status === "Planned").length} Planned</span><span><b className="dot yellow-dot" /> {sessions.filter(s => s.status === "Changed").length} Changed</span><span><b className="dot red-dot" /> {sessions.filter(s => s.status === "Cancelled").length} Cancelled</span></div>
-      <div className="grid" style={{marginBottom: 18}}><div className="card"><div className="kpi-label">AuVi TV Coverage</div><div className="kpi-value">{auviCoverage}%</div><div className="kpi-note">Target ≥ 50% rombel · {auviCount} assignment</div></div><div className="card"><div className="kpi-label">LD</div><div className="kpi-value">{ldCount}/10</div><div className="kpi-note">Target 10 sesi</div></div><div className="card"><div className="kpi-label">Rombel Active</div><div className="kpi-value">{activeRombels}</div><div className="kpi-note">Assignment minggu ini</div></div></div>
-      <div className="planning-table-wrap"><table><thead><tr><th>Tanggal</th><th>Jam</th><th>MT</th><th>Rombel</th><th>Jenis</th><th>AuVi TV</th><th>LD</th><th>Status</th><th>Aksi</th></tr></thead><tbody>{visibleSessions.map((session) => <tr key={session.id} className={session.status === "Cancelled" ? "muted-row" : ""}><td>{session.date}</td><td>{session.time}</td><td><strong>{session.mt}</strong></td><td>{session.rombel}</td><td>{session.type}</td><td><button className={`badge ${session.auviTv ? "green" : "blue"}`} onClick={() => toggleAssignment(session.id, "auviTv")}>{session.auviTv ? "✓ Assigned" : "+ Assign"}</button></td><td><button className={`badge ${session.ld ? "green" : "blue"}`} onClick={() => toggleAssignment(session.id, "ld")}>{session.ld ? "✓ Assigned" : "+ Assign"}</button></td><td><span className={`badge ${session.status === "Planned" ? "green" : session.status === "Changed" ? "yellow" : session.status === "Realized" ? "blue" : "red"}`}>{session.status}</span></td><td><div className="row-actions"><button onClick={() => setShowForm(true)}>Edit</button><button onClick={() => cancelSession(session.id)} disabled={session.status === "Cancelled"}>Cancel</button></div></td></tr>)}</tbody></table></div>
-      <div className="finalize-bar"><div><strong>Planning Week 36</strong><small>Pastikan assignment AuVi TV & LD sudah sesuai sebelum finalisasi.</small></div><button className="secondary-btn">🔒 Finalize Week</button></div>
-      {showForm && <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) setShowForm(false); }}><form className="modal" onSubmit={addSession}><div className="modal-head"><div><h2>Tambah Session</h2><p>Data MT dan rombel diambil dari menu Data.</p></div><button type="button" className="close-btn" onClick={() => setShowForm(false)}>×</button></div><label>Tanggal<input type="date" value={date} onChange={(e) => setDate(e.target.value)} required /></label><div className="two-cols"><label>Mulai<input type="time" value={start} onChange={(e) => setStart(e.target.value)} required /></label><label>Selesai<input type="time" value={end} onChange={(e) => setEnd(e.target.value)} required /></label></div><label>MT<select value={mt} onChange={(e) => setMt(e.target.value)} required>{mts.map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}</select></label><label>Rombel<select value={rombel} onChange={(e) => setRombel(e.target.value)} required>{rombels.map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}</select></label><div className="modal-actions"><button type="button" className="secondary-btn" onClick={() => setShowForm(false)}>Batal</button><button type="submit" className="primary-btn">Simpan</button></div></form></div>}
+      <div className="page-head">
+        <div>
+          <h1>Weekly Planning</h1>
+          <p>Coach input seluruh sesi secara manual, lalu simpan sebagai Draft.</p>
+        </div>
+        <span className={`badge ${status === "Draft" ? "yellow" : "green"}`} style={{ padding: "9px 14px" }}>
+          {status === "Draft" ? "📝 Draft" : "🔒 Finalized"}
+        </span>
+      </div>
+
+      <div className="planning-filters">
+        <label>Week
+          <select value={week} onChange={(e) => setWeek(e.target.value)} disabled={status === "Finalized"}>
+            <option>Week 36 · 31 Aug – 6 Sep 2026</option>
+            <option>Week 37 · 7 – 13 Sep 2026</option>
+            <option>Week 38 · 14 – 20 Sep 2026</option>
+          </select>
+        </label>
+        <label>Cabang
+          <select defaultValue="Tarandam"><option>Tarandam</option></select>
+        </label>
+      </div>
+
+      <div className="grid" style={{ marginBottom: 18 }}>
+        <div className="card"><div className="kpi-label">Total Session</div><div className="kpi-value">{sessions.length}</div><div className="kpi-note">Input manual minggu ini</div></div>
+        <div className="card"><div className="kpi-label">AuVi TV Coverage</div><div className="kpi-value">{auviCoverage}%</div><div className="kpi-note">{auviRombels}/{totalRombels} rombel · target ≥ 50%</div></div>
+        <div className="card"><div className="kpi-label">LD</div><div className="kpi-value">{ldCount}/10</div><div className="kpi-note">Target 10 sesi</div></div>
+      </div>
+
+      <div className="card" style={{ marginBottom: 18 }}>
+        <div className="modal-head" style={{ marginBottom: 14 }}>
+          <div><h2>Pilih Hari</h2><p>Pilih hari, lalu masukkan seluruh sesi pada hari tersebut.</p></div>
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {DAYS.map((item) => (
+            <button key={item} onClick={() => setDay(item)} className={day === item ? "primary-btn" : "secondary-btn"} disabled={status === "Finalized" && day !== item}>{item}</button>
+          ))}
+        </div>
+      </div>
+
+      <form className="card" onSubmit={addSession} style={{ marginBottom: 18 }}>
+        <div className="modal-head" style={{ marginBottom: 14 }}>
+          <div><h2>Input Sesi — {day}</h2><p>Tidak perlu memasukkan jam.</p></div>
+        </div>
+        <div className="planning-filters" style={{ marginBottom: 0 }}>
+          <label>MT<select value={mt} onChange={(e) => setMt(e.target.value)} disabled={status === "Finalized"} required>{mts.map((item) => <option key={item.id}>{item.name}</option>)}</select></label>
+          <label>Rombel<select value={rombel} onChange={(e) => setRombel(e.target.value)} disabled={status === "Finalized"} required>{rombels.map((item) => <option key={item.id}>{item.name}</option>)}</select></label>
+          <label>Mapel<input value={mapel} onChange={(e) => setMapel(e.target.value)} placeholder="Contoh: Matematika" disabled={status === "Finalized"} required /></label>
+          <label>Jenis Sesi<select value={type} onChange={(e) => setType(e.target.value)} disabled={status === "Finalized"}><option>KBM</option><option>AuVi TV</option><option>LD</option><option>Other</option></select></label>
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 16, marginTop: 14 }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 8 }}><input type="checkbox" checked={auviTv} onChange={(e) => setAuviTv(e.target.checked)} disabled={status === "Finalized"} /> AuVi TV</label>
+          <label style={{ display: "flex", alignItems: "center", gap: 8 }}><input type="checkbox" checked={ld} onChange={(e) => setLd(e.target.checked)} disabled={status === "Finalized"} /> LD</label>
+        </div>
+        <button className="primary-btn" type="submit" disabled={status === "Finalized"} style={{ marginTop: 16 }}>＋ Tambah Sesi</button>
+      </form>
+
+      <div className="planning-table-wrap">
+        <table>
+          <thead><tr><th>Hari</th><th>MT</th><th>Rombel</th><th>Mapel / Jenis</th><th>AuVi TV</th><th>LD</th><th>Aksi</th></tr></thead>
+          <tbody>
+            {visibleSessions.length === 0 ? <tr><td colSpan={7} style={{ textAlign: "center", padding: 36, color: "#64748b" }}>Belum ada sesi untuk {day}. Silakan input sesi di atas.</td></tr> : visibleSessions.map((session) => (
+              <tr key={session.id}>
+                <td>{session.date}</td><td><strong>{session.mt}</strong></td><td>{session.rombel}</td><td>{session.type}</td>
+                <td><span className={`badge ${session.auviTv ? "green" : "blue"}`}>{session.auviTv ? "✓ Assigned" : "—"}</span></td>
+                <td><span className={`badge ${session.ld ? "green" : "blue"}`}>{session.ld ? "✓ Assigned" : "—"}</span></td>
+                <td><button onClick={() => deleteSession(session.id)} disabled={status === "Finalized"} style={{ color: "#dc2626" }}>Hapus</button></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="finalize-bar" style={{ marginTop: 18 }}>
+        <div><strong>Planning {week.split(" · ")[0]}</strong><small>{message || "Semua sesi yang diinput belum final sampai Coach melakukan finalisasi."}</small></div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button className="secondary-btn" onClick={saveDraft} disabled={status === "Finalized"}>📝 Simpan sebagai Draft</button>
+          <button className="primary-btn" onClick={finalize} disabled={status === "Finalized" || sessions.length === 0}>🔒 Finalize Planning</button>
+        </div>
+      </div>
     </div>
   );
 }
