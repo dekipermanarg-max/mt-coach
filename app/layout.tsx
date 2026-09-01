@@ -10,9 +10,20 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="id">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body>
         <Navigation />
         <style>{`
+          /* Global typography: use Inter throughout the application. */
+          html, body, button, input, select, textarea { font-family: Inter, Arial, Helvetica, sans-serif !important; }
+
           /* One navigation only: remove legacy page sidebars. */
           .sidebar { display: none !important; }
           .shell { display: block !important; min-height: auto !important; }
