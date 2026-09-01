@@ -1,4 +1,5 @@
 import masterData from "./master-data.json";
+import mtBranches from "./mt-branches.json";
 
 export type MT = { id: number; name: string; branch: string; status: "Active" | "Inactive" };
 export type Rombel = { id: number; name: string; level: string; branch: string; status: "Active" | "Inactive" };
@@ -19,7 +20,7 @@ export type Session = {
 const seedMT: MT[] = masterData.mt.map((name, index) => ({
   id: index + 1,
   name,
-  branch: "Semua Cabang",
+  branch: mtBranches[index] || "Semua Cabang",
   status: "Active",
 }));
 
