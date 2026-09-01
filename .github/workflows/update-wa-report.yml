@@ -1,0 +1,68 @@
+name: Update WA report format
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Update WA report format
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('app/monitoring/page.tsx')
+          text = path.read_text()
+          start = text.index('  const waReport = useMemo(() => {')
+          end = text.index('  async function copyWaReport()', start)
+          replacement = '''  const waReport = useMemo(() => {
+    const byMt = new Map<string, MonitoringRow[]>();
+    reportIncompleteRows.forEach(row => {
+      const key = row.mt_id || "unknown";
+      if (!byMt.has(key)) byMt.set(key, []);
+      byMt.get(key)!.push(row);
+    });
+    const branchLabel = branchId === "all" ? "Semua Cabang" : nameOf(branches, branchId);
+    const lines: string[] = [
+      "📋 *REPORT ADMINISTRASI MT*",
+      `📅 ${formatDate(waDate)}`,
+      `🏫 ${branchLabel}`,
+      `📊 *${reportCompleteCount} lengkap · ${reportIncompleteCount} belum lengkap*`,
+      "",
+    ];
+    if (!reportIncompleteRows.length) {
+      lines.push("🎉 *Semua sesi sudah lengkap!*", "🙏 Terima kasih, teman-teman MT.");
+      return lines.join("\\n");
+    }
+    lines.push("⚠️ *Mohon segera lengkapi administrasi sesi berikut:*", "");
+    let number = 1;
+    Array.from(byMt.entries()).sort((a, b) => nameOf(mts, a[0]).localeCompare(nameOf(mts, b[0]))).forEach(([mtId, mtRows]) => {
+      lines.push(`*${nameOf(mts, mtId)}*`);
+      mtRows.forEach(row => {
+        const missing = isSimpleSession(row) ? (!row.attendance ? ["Attendance"] : []) : [
+          !row.topik_sub_topik_done && "Topik/Subtopik", !row.attendance && "Attendance", !row.starchamps && "Starchamps",
+          !row.activity_score && "Activity Score", !row.report_sessions && "Report Sessions", !row.foto_kbm && "Foto KBM",
+          !row.report_wa && "Report WA", !row.auvi_tv_status && "AuVi TV", !row.ld_status && "LD",
+        ].filter(Boolean) as string[];
+        lines.push(`${number++}. ${nameOf(rombels, row.rombel_id)} · ${nameOf(mapels, row.mapel_id)} · ${row.jenis_sesi}`, `   ❌ ${missing.join(" · ")}`, "");
+      });
+    });
+    lines.push("🙏 *Yuk, segera dilengkapi agar administrasi sesi tercatat lengkap.*");
+    return lines.join("\\n");
+  }, [reportIncompleteRows, waDate, reportCompleteCount, reportIncompleteCount, mts, branches, rombels, mapels, branchId]);
+
+'''
+          path.write_text(text[:start] + replacement + text[end:])
+          PY
+      - name: Commit change
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/monitoring/page.tsx
+          git diff --cached --quiet || git commit -m "Revise WhatsApp admin report format"
+          git push
