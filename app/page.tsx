@@ -41,6 +41,12 @@ function formatDate(date: string) {
   return new Intl.DateTimeFormat("id-ID", { weekday: "short", day: "numeric", month: "short" }).format(new Date(`${date}T00:00:00`));
 }
 
+function getTargetBranchKey(branchName?: string | null) {
+  if (!branchName) return null;
+  if (LD_TARGETS[branchName] !== undefined) return branchName;
+  return Object.keys(LD_TARGETS).find(key => branchName === key || branchName.endsWith(` - ${key}`)) || null;
+}
+
 export default function Home() {
   const [mts, setMts] = useState<MasterRow[]>([]);
   const [rombels, setRombels] = useState<MasterRow[]>([]);
@@ -84,20 +90,14 @@ export default function Home() {
     ? AUVI_WEEKLY_TARGET_PER_BRANCH * branchesList.length
     : AUVI_WEEKLY_TARGET_PER_BRANCH, [branch, branchesList.length]);
 
-  const ldTarget = useMemo(() => {
-    if (branch !== "all") {
-      const name = branches.find(b => b.id === branch)?.name;
-      return name ? (LD_TARGETS[name] || 0) : 0;
-    }
-    return Object.values(LD_TARGETS).reduce((sum, value) => sum + value, 0);
-  }, [branch, branches]);
-  const ldEligible = useMemo(() => {
-    if (branch !== "all") {
-      const name = branches.find(b => b.id === branch)?.name;
-      return name ? (LD_ELIGIBLE_ROMBELS[name] || 0) : 0;
-    }
-    return Object.values(LD_ELIGIBLE_ROMBELS).reduce((sum, value) => sum + value, 0);
-  }, [branch, branches]);
+  const selectedBranchName = useMemo(() => branches.find(b => b.id === branch)?.name, [branch, branches]);
+  const selectedTargetKey = useMemo(() => getTargetBranchKey(selectedBranchName), [selectedBranchName]);
+  const ldTarget = useMemo(() => branch === "all"
+    ? Object.values(LD_TARGETS).reduce((sum, value) => sum + value, 0)
+    : (selectedTargetKey ? LD_TARGETS[selectedTargetKey] : 0), [branch, selectedTargetKey]);
+  const ldEligible = useMemo(() => branch === "all"
+    ? Object.values(LD_ELIGIBLE_ROMBELS).reduce((sum, value) => sum + value, 0)
+    : (selectedTargetKey ? LD_ELIGIBLE_ROMBELS[selectedTargetKey] : 0), [branch, selectedTargetKey]);
 
   const performance = useMemo(() => activeMTs.map(mt => {
     const own = visibleSessions.filter(s => s.mt_id === mt.id);
