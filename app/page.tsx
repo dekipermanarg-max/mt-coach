@@ -43,7 +43,7 @@ export default function Home() {
 
   const branchesList = useMemo(() => branches.filter(b => b.name !== "Semua Cabang"), [branches]);
   const visibleSessions = useMemo(() => branch === "all" ? sessions : sessions.filter(s => s.branch_id === branch), [sessions, branch]);
-  const activeMTs = useMemo(() => branch === "all" ? mts : mts.filter(m => m.branch_id === branch), [mts, branch]);
+  const activeMTs = useMemo(() => mts.filter(m => m.active !== false), [mts]);
   const branchRombels = useMemo(() => branch === "all" ? rombels : rombels.filter(r => r.branch_id === branch), [rombels, branch]);
 
   const planned = visibleSessions.length;
@@ -61,7 +61,8 @@ export default function Home() {
     return { id: mt.id, name: mt.name, score, planned: p, realized: r };
   }).filter(r => r.planned > 0).sort((a, b) => b.score - a.score || b.realized - a.realized).slice(0, 5), [activeMTs, visibleSessions]);
 
-  const attention = performance.filter(r => r.score < 90);
+  const mtAttention = useMemo(() => performance.filter(r => r.score < 90), [performance]);
+  const changedCount = visibleSessions.filter(s => s.status === "Changed").length;
   const today = new Date().toISOString().slice(0, 10);
   const todaySessions = visibleSessions.filter(s => s.planning_date === today).slice(0, 4);
 
@@ -71,11 +72,30 @@ export default function Home() {
       <div className="dashboard-filters"><select className="select" value={branch} onChange={e => setBranch(e.target.value)}><option value="all">Semua Cabang</option>{branchesList.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></div>
       {loading ? <div className="card"><div className="kpi-note">Memuat data Monitoring...</div></div> : <>
         <section className="grid"><div className="card"><div className="kpi-label">Session Completion</div><div className="kpi-value">{sessionCompletion}%</div><div className="kpi-note">{realized} / {planned} realized</div></div><div className="card"><div className="kpi-label">AuVi TV Coverage</div><div className="kpi-value">{auviCoverage}%</div><div className="kpi-note">Target ≥ 50% rombel</div></div><div className="card"><div className="kpi-label">LD</div><div className="kpi-value">{ldCount}/10</div><div className="kpi-note">Target 10 sesi</div></div><div className="card"><div className="kpi-label">Active MT</div><div className="kpi-value">{activeMTs.length}</div><div className="kpi-note">Data aktif</div></div></section>
-        <section className="section"><div className="section-head"><h2>⚠️ Needs Attention</h2></div><div className="attention">{attention.length ? attention.map(r => <div className="alert" key={r.id}><div><strong>{r.name}</strong><small>Session completion {r.score}% · {r.planned - r.realized} sesi belum realized</small></div><Link className="badge yellow" href="/performance">Lihat MT →</Link></div>) : <div className="alert"><div><strong>✅ All good</strong><small>Tidak ada MT dengan session completion di bawah 90%.</small></div></div>}{visibleSessions.filter(s => s.status === "Changed").length > 0 && <div className="alert"><div><strong>{visibleSessions.filter(s => s.status === "Changed").length} sesi changed</strong><small>Ada sesi yang mengalami perubahan.</small></div><Link className="badge yellow" href="/monitoring">Lihat Sesi →</Link></div>}{auviCoverage < 50 && <div className="alert"><div><strong>AuVi TV belum mencapai target</strong><small>{auviCoverage}% coverage · target minimal 50% rombel.</small></div><Link className="badge yellow" href="/planning">Atur Assignment →</Link></div>}{ldCount < 10 && <div className="alert"><div><strong>LD belum mencapai target</strong><small>{ldCount}/10 sesi assigned.</small></div><Link className="badge yellow" href="/planning">Atur LD →</Link></div>}</div></section>
+
+        <section className="section"><div className="section-head"><h2>⚠️ Needs Attention</h2></div>
+          <div className="grid attention-grid">
+            <div className="card attention-card">
+              <div className="section-head"><div><h3>👤 MT</h3><div className="kpi-note">Session completion di bawah 90%</div></div><Link className="badge yellow" href="/performance">Lihat Performance →</Link></div>
+              {mtAttention.length ? <div className="attention">{mtAttention.map(r => <div className="alert" key={r.id}><div><strong>{r.name}</strong><small>Session completion {r.score}% · {r.planned - r.realized} sesi belum realized</small></div></div>)}</div> : <div className="alert"><div><strong>✅ All good</strong><small>Tidak ada MT dengan session completion di bawah 90%.</small></div></div>}
+            </div>
+
+            <div className="card attention-card">
+              <div className="section-head"><div><h3>📺 AuVi TV + LD</h3><div className="kpi-note">Assignment & administrasi yang perlu diperhatikan</div></div><Link className="badge yellow" href="/monitoring">Lihat Monitoring →</Link></div>
+              <div className="attention">
+                {auviCoverage < 50 && <div className="alert"><div><strong>📺 AuVi TV belum mencapai target</strong><small>{auviCoverage}% coverage · target minimal 50% rombel.</small></div></div>}
+                {ldCount < 10 && <div className="alert"><div><strong>📝 LD belum mencapai target</strong><small>{ldCount}/10 sesi assigned.</small></div></div>}
+                {!changedCount && auviCoverage >= 50 && ldCount >= 10 && <div className="alert"><div><strong>✅ All good</strong><small>AuVi TV dan LD sudah memenuhi target.</small></div></div>}
+                {changedCount > 0 && <div className="alert"><div><strong>🔄 {changedCount} sesi changed</strong><small>Ada sesi yang mengalami perubahan.</small></div><Link className="badge yellow" href="/monitoring">Lihat Sesi →</Link></div>}
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section className="section"><div className="section-head"><h2>🏆 MT Performance</h2><span className="kpi-note">Top 5</span></div><div className="table-wrap"><table><thead><tr><th>#</th><th>MT</th><th>Session</th><th>Realized</th><th>Overall</th><th>Status</th></tr></thead><tbody>{performance.map((r, i) => <tr key={r.id}><td>{i + 1}</td><td><strong>{r.name}</strong></td><td>{r.planned}</td><td>{r.realized}</td><td className="score">{r.score}%</td><td><span className={`badge ${r.score >= 95 ? "green" : r.score >= 90 ? "blue" : "yellow"}`}>{r.score >= 95 ? "Excellent" : r.score >= 90 ? "Good" : "Attention"}</span></td></tr>)}</tbody></table></div></section>
         <section className="section"><div className="section-head"><h2>📅 Today</h2><Link className="kpi-note" href="/planning">Lihat Planning →</Link></div><div className="today">{todaySessions.length ? todaySessions.map(s => <div className="session" key={s.id}><strong>{formatDate(s.planning_date)}</strong><span>{mts.find(m => m.id === s.mt_id)?.name || "—"}</span><br/><span className={`badge ${s.attendance || s.status === "Realized" ? "green" : s.status === "Changed" ? "yellow" : s.status === "Cancelled" ? "red" : "blue"}`}>{s.status || "Finalized"}</span></div>) : <div className="alert"><div><strong>Belum ada sesi</strong><small>Belum ada sesi Finalized pada hari ini.</small></div></div>}</div></section>
       </>}
-      <style jsx global>{`.dashboard-page{padding-top:0}.dashboard-filters{display:flex;justify-content:flex-end;margin-bottom:18px}.dashboard-filters .select{min-width:250px}`}</style>
+      <style jsx global>{`.dashboard-page{padding-top:0}.dashboard-filters{display:flex;justify-content:flex-end;margin-bottom:18px}.dashboard-filters .select{min-width:250px}.attention-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.attention-card{min-width:0}.attention-card h3{margin:0 0 4px}.attention-card .section-head{align-items:flex-start}@media(max-width:900px){.attention-grid{grid-template-columns:1fr}}`}</style>
     </div>
   );
 }
