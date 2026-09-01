@@ -12,12 +12,19 @@ type Session = {
 };
 const AUVI_WEEKLY_TARGET = 10;
 const LD_ELIGIBLE_ROMBEL: Record<string, number> = {
-  "Ujung Gurun": 2, "Tarandam": 6, "Sutomo": 11, "S. Parman": 1, "Gajah Mada": 10,
+  "Ujung Gurun": 2, "Tarandam": 6, "Sutomo": 11, "S. Parman": 6, "Gajah Mada": 10,
   "Solok": 6, "Payakumbuh": 9, "Painan": 6, "Manggis Ganting": 5, "Jambu Air": 6
 };
 function formatDate(value: string) { return value ? new Date(`${value}T00:00:00`).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : ""; }
 function defaultStart() { const d = new Date(); d.setDate(d.getDate() - 6); return d.toISOString().slice(0, 10); }
 function adminCount(s: Session) { let count = 0; if (s.topik_sub_topik_done) count++; if (s.attendance) count++; if (s.starchamps) count++; if (s.activity_score) count++; if (s.report_sessions) count++; if (s.foto_kbm) count++; if (s.report_wa) count++; if (s.auvi_tv_status) count++; if (s.ld_status) count++; return count; }
+function getBranchTargetKey(name: string) {
+  const normalized = name.toLowerCase().replace(/[–—]/g, "-").replace(/\s+/g, " ").trim();
+  return Object.keys(LD_ELIGIBLE_ROMBEL).find(key => {
+    const target = key.toLowerCase();
+    return normalized === target || normalized.endsWith(` - ${target}`);
+  }) || null;
+}
 function weeksInRange(start: string, end: string) { const a = new Date(`${start}T00:00:00`); const b = new Date(`${end}T00:00:00`); const days = Math.max(1, Math.floor((b.getTime() - a.getTime()) / 86400000) + 1); return Math.max(1, Math.ceil(days / 7)); }
 
 export default function Performance() {
@@ -31,12 +38,13 @@ export default function Performance() {
   const branchId = useMemo(() => branch === "Semua Cabang" ? null : (branches.find(b => b.name === branch)?.id || null), [branch, branches]);
   const branchName = (id: string | null) => branches.find(b => b.id === id)?.name || "—";
   const filtered = useMemo(() => sessions.filter(s => !branchId || s.branch_id === branchId), [sessions, branchId]);
-  const selectedBranchCount = branch === "Semua Cabang" ? branches.filter(b => LD_ELIGIBLE_ROMBEL[b.name] !== undefined).length : 1;
+  const selectedBranchCount = branch === "Semua Cabang" ? branches.filter(b => getBranchTargetKey(b.name)).length : 1;
   const periodWeeks = weeksInRange(startDate, endDate);
   const auviTarget = AUVI_WEEKLY_TARGET * selectedBranchCount * periodWeeks;
   const auviRealized = filtered.filter(s => s.auvi_tv_status && s.auvi_tv_status !== "Bukan sesi AuVi TV").length;
   const auviPct = auviTarget ? Math.round(auviRealized / auviTarget * 100) : 0;
-  const ldEligible = branch === "Semua Cabang" ? Object.values(LD_ELIGIBLE_ROMBEL).reduce((a, b) => a + b, 0) : (LD_ELIGIBLE_ROMBEL[branch] || 0);
+  const selectedBranchKey = branch === "Semua Cabang" ? null : getBranchTargetKey(branch);
+  const ldEligible = branch === "Semua Cabang" ? Object.values(LD_ELIGIBLE_ROMBEL).reduce((a, b) => a + b, 0) : (selectedBranchKey ? LD_ELIGIBLE_ROMBEL[selectedBranchKey] : 0);
   const ldTarget = branch === "Semua Cabang" ? Object.values(LD_ELIGIBLE_ROMBEL).reduce((a, b) => a + Math.ceil(b * 0.5), 0) * periodWeeks : Math.ceil(ldEligible * 0.5) * periodWeeks;
   const ldRombels = new Set(filtered.filter(s => s.ld_status && s.ld_status !== "Bukan sesi LD").map(s => s.id));
   const rows = useMemo(() => mts.map(mt => { const own = filtered.filter(s => s.mt_id === mt.id); const planned = own.length; const realized = own.filter(s => s.attendance).length; const session = planned ? Math.round(realized / planned * 100) : 0; const admin = planned ? Math.round(own.reduce((sum, s) => sum + adminCount(s), 0) / planned / 9 * 100) : 0; const ldOwn = own.filter(s => s.ld_status && s.ld_status !== "Bukan sesi LD"); const ld = ldOwn.length ? Math.round(ldOwn.filter(s => s.ld_status === "Sudah report di CMS").length / ldOwn.length * 100) : null; return { name: mt.name, base: branchName(mt.branch_id), planned, realized, session, admin, ld }; }).filter(r => r.planned > 0).sort((a, b) => b.session - a.session || b.admin - a.admin), [mts, filtered, branches]);
