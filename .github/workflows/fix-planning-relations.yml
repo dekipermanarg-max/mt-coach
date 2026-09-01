@@ -27,11 +27,66 @@ jobs:
               raise SystemExit(0)
           p.write_text(s.replace(old, new, 1))
           PY
+      - name: Revise WhatsApp admin report
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('app/monitoring/page.tsx')
+          s = p.read_text()
+          start = s.find('  const waReport = useMemo(() => {')
+          end = s.find('  async function copyWaReport()', start)
+          if start == -1 or end == -1:
+              print('WA report block not found; skipping.')
+              raise SystemExit(0)
+          replacement = '''  const waReport = useMemo(() => {
+    const byMt = new Map<string, MonitoringRow[]>();
+    reportIncompleteRows.forEach(row => {
+      const key = row.mt_id || "unknown";
+      if (!byMt.has(key)) byMt.set(key, []);
+      byMt.get(key)!.push(row);
+    });
+    const branchLabel = branchId === "all" ? "Semua Cabang" : nameOf(branches, branchId);
+    const lines: string[] = [
+      "📋 *REPORT ADMINISTRASI MT*",
+      `📅 ${formatDate(waDate)}`,
+      `🏫 ${branchLabel}`,
+      `📊 *${reportCompleteCount} lengkap · ${reportIncompleteCount} belum lengkap*`,
+      "",
+    ];
+    if (!reportIncompleteRows.length) {
+      lines.push("🎉 *Semua sesi sudah lengkap!*", "🙏 Terima kasih, teman-teman MT.");
+      return lines.join("\\n");
+    }
+    lines.push("⚠️ *Mohon segera lengkapi administrasi sesi berikut:*", "");
+    let number = 1;
+    Array.from(byMt.entries()).sort((a, b) => nameOf(mts, a[0]).localeCompare(nameOf(mts, b[0]))).forEach(([mtId, mtRows]) => {
+      lines.push(`*${nameOf(mts, mtId)}*`);
+      mtRows.forEach(row => {
+        const missing = isSimpleSession(row) ? (!row.attendance ? ["Attendance"] : []) : [
+          !row.topik_sub_topik_done && "Topik/Subtopik", !row.attendance && "Attendance", !row.starchamps && "Starchamps",
+          !row.activity_score && "Activity Score", !row.report_sessions && "Report Sessions", !row.foto_kbm && "Foto KBM",
+          !row.report_wa && "Report WA", !row.auvi_tv_status && "AuVi TV", !row.ld_status && "LD",
+        ].filter(Boolean) as string[];
+        lines.push(
+          `${number++}. ${nameOf(rombels, row.rombel_id)} · ${nameOf(mapels, row.mapel_id)} · ${row.jenis_sesi}`,
+          `   ❌ ${missing.join(" · ")}`,
+          "",
+        );
+      });
+    });
+    lines.push("🙏 *Yuk, segera dilengkapi agar administrasi sesi tercatat lengkap.*");
+    return lines.join("\\n");
+  }, [reportIncompleteRows, waDate, reportCompleteCount, reportIncompleteCount, mts, branches, rombels, mapels, branchId]);
+
+'''
+          if s[start:end] != replacement:
+              p.write_text(s[:start] + replacement + s[end:])
+          PY
       - name: Commit fix
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add app/planning/page.tsx
+          git add app/planning/page.tsx app/monitoring/page.tsx
           if git diff --cached --quiet; then
             echo 'No changes to commit.'
           else
