@@ -94,7 +94,7 @@ export default function Monitoring() {
     const byMt = new Map<string, MonitoringRow[]>();
     reportIncompleteRows.forEach(row => {
       const key = row.mt_id || "unknown";
-      if (!byMt.has(ney)) byMt.set(key, []);
+      if (!byMt.has(key)) byMt.set(key, []);
       byMt.get(key)!.push(row);
     });
     const branchLabel = branchId === "all" ? "Semua Cabang" : nameOf(branches, branchId);
@@ -106,12 +106,12 @@ export default function Monitoring() {
       "",
     ];
     if (!reportIncompleteRows.length) {
-      lines.push("🎉 *Semua sesi sudah lengkap!*", "🙏 Terima kasi, teman-teman MT.");
+      lines.push("🎉 *Semua sesi sudah lengkap!*", "🙏 Terima kasih, teman-teman MT.");
       return lines.join("\n");
     }
-    lines.push("❠ **Mohon segera lengkapi administrasi sesi berikut:**", "");
+    lines.push("⚠️ *Mohon segera lengkapi administrasi sesi berikut:*", "");
     let number = 1;
-    Array.from(byMt.entries()).sort((a, b) => nameOf(ts, a[0]).localeCompare(nameOf(mts, b[0]))).forEach(([mtId, mtRows]) => {
+    Array.from(byMt.entries()).sort((a, b) => nameOf(mts, a[0]).localeCompare(nameOf(mts, b[0]))).forEach(([mtId, mtRows]) => {
       lines.push(`*${nameOf(mts, mtId)}*`);
       mtRows.forEach(row => {
         const missing = isSimpleSession(row) ? (!row.attendance ? ["Attendance"] : []) : [
@@ -126,7 +126,7 @@ export default function Monitoring() {
         );
       });
     });
-    lines.push("🏏 *Yuk, segera dilengkapi agar administrasi sesi tercatat lengkap.*");
+    lines.push("🙏 *Yuk, segera dilengkapi agar administrasi sesi tercatat lengkap.*");
     return lines.join("\n");
   }, [reportIncompleteRows, waDate, reportCompleteCount, reportIncompleteCount, mts, branches, rombels, mapels, branchId]);
 
