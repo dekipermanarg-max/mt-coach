@@ -34,6 +34,7 @@ export default function Monitoring() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const [message, setMessage] = useState("");
+  const [openId, setOpenId] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
@@ -69,26 +70,38 @@ export default function Monitoring() {
     (selectedMT === "all" || r.mt_id === selectedMT) &&
     `${nameOf(mts, r.mt_id)} ${nameOf(rombels, r.rombel_id)} ${nameOf(mapels, r.mapel_id)} ${r.jenis_sesi}`.toLowerCase().includes(search.toLowerCase())
   ), [rows, mts, rombels, mapels, branchId, selectedMT, startDate, endDate, search]);
-  const adminDone = (r: MonitoringRow) => ADMIN_KEYS.filter(k => Boolean(r[k])).length;
-  const adminPercent = (r: MonitoringRow) => Math.round((adminDone(r) / ADMIN_KEYS.length) * 100);
+
+  const adminDone = (r: MonitoringRow) => ADMIN_KEYS.filter(k => Boolean(r[k])).length + (r.auvi_tv_status ? 1 : 0) + (r.ld_status ? 1 : 0);
+  const adminTotal = ADMIN_KEYS.length + 2;
+  const adminPercent = (r: MonitoringRow) => Math.round((adminDone(r) / adminTotal) * 100);
   const avgAdmin = filtered.length ? Math.round(filtered.reduce((a, r) => a + adminPercent(r), 0) / filtered.length) : 0;
+  const completeCount = filtered.filter(r => adminDone(r) === adminTotal).length;
+  const incompleteCount = filtered.length - completeCount;
 
   async function saveRow(row: MonitoringRow, patch: Partial<MonitoringRow>) {
     setSaving(row.id); setMessage("");
     const { error } = await supabase.from("weekly_planning").update(patch as never).eq("id", row.id).eq("status", "Finalized");
-    if (error) setMessage(`Gagal menyimpan: ${error.message}`); else setRows(prev => prev.map(x => x.id === row.id ? { ...x, ...patch } : x));
+    if (error) setMessage(`Gagal menyimpan: ${error.message}`);
+    else setRows(prev => prev.map(x => x.id === row.id ? { ...x, ...patch } : x));
     setSaving(null);
   }
 
   function clearDates() {
     if (!rows.length) return;
     const dates = rows.map(x => x.planning_date).sort();
-    setStartDate(dates[0]);
-    setEndDate(dates[dates.length - 1]);
+    setStartDate(dates[0]); setEndDate(dates[dates.length - 1]);
   }
 
+  const checkboxItems = [
+    ["topik_sub_topik_done", "Topik/Subtopik"], ["attendance", "Attendance"], ["starchamps", "Starchamps"],
+    ["activity_score", "Activity Score"], ["report_sessions", "Report Sessions"], ["foto_kbm", "Foto KBM"], ["report_wa", "Report WA"],
+  ] as const;
+
   return <div className="page-wrap">
-    <section className="planning-hero"><div className="planning-hero-row"><div><div className="eyebrow">MT COACH · OPERATIONS</div><h1>Monitoring</h1><p>Sesi yang sudah Finalize dari Weekly Planning muncul di sini untuk dilengkapi administrasinya.</p></div><span className="badge planning-status">🔒 {filtered.length} sesi Finalized</span></div></section>
+    <section className="planning-hero">
+      <div className="planning-hero-row"><div><div className="eyebrow">MT COACH · OPERATIONS</div><h1>Monitoring</h1><p>Sesi yang sudah Finalize dari Weekly Planning muncul di sini untuk dilengkapi administrasinya.</p></div><span className="badge planning-status">🔒 {filtered.length} sesi Finalized</span></div>
+    </section>
+
     <section className="planning-control-card">
       <div className="control-box"><span className="control-label">Tanggal Awal</span><input className="date-input" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} /></div>
       <div className="control-box"><span className="control-label">Tanggal Akhir</span><input className="date-input" type="date" value={endDate} min={startDate || undefined} onChange={e => setEndDate(e.target.value)} /></div>
@@ -97,18 +110,41 @@ export default function Monitoring() {
       <div className="control-box"><span className="control-label">Cari</span><input className="date-input" value={search} onChange={e => setSearch(e.target.value)} placeholder="MT / rombel / mapel..." /></div>
       <button type="button" className="secondary-btn" onClick={clearDates}>↻ Reset Tanggal</button>
     </section>
-    <div className="grid planning-kpis"><div className="card planning-kpi"><div className="kpi-label">Finalized Session</div><div className="kpi-value">{filtered.length}</div><div className="kpi-note">Sesi siap dimonitor</div></div><div className="card planning-kpi"><div className="kpi-label">Admin Completion</div><div className="kpi-value">{avgAdmin}%</div><div className="kpi-note">Rata-rata 7 item administrasi</div></div><div className="card planning-kpi"><div className="kpi-label">AuVi TV</div><div className="kpi-value">{filtered.filter(r => r.auvi_tv_status === "Connect ke TV").length}</div><div className="kpi-note">Connect ke TV</div></div><div className="card planning-kpi"><div className="kpi-label">LD</div><div className="kpi-value">{filtered.filter(r => r.ld_status === "Sudah report di CMS").length}</div><div className="kpi-note">Sudah report di CMS</div></div></div>
+
+    <div className="grid planning-kpis">
+      <div className="card planning-kpi"><div className="kpi-label">Finalized Session</div><div className="kpi-value">{filtered.length}</div><div className="kpi-note">Sesi siap dimonitor</div></div>
+      <div className="card planning-kpi"><div className="kpi-label">Admin Completion</div><div className="kpi-value">{avgAdmin}%</div><div className="kpi-note">Rata-rata 9 item administrasi</div></div>
+      <div className="card planning-kpi"><div className="kpi-label">Lengkap</div><div className="kpi-value">{completeCount}</div><div className="kpi-note">Semua 9 administrasi selesai</div></div>
+    </div>
+
     {message && <div className="card" style={{ marginBottom: 16, padding: 14 }}>{message}</div>}
-    <section className="card planning-table-card"><div className="planning-table-head"><div><h2>📊 Kelengkapan Administrasi</h2><p>MT Coach melengkapi administrasi untuk setiap sesi yang sudah Finalized.</p></div><span className="section-chip">{filtered.length} sesi</span></div>
-      <div className="planning-table-wrap" style={{ overflowX: "auto", overflowY: "hidden", WebkitOverflowScrolling: "touch" }}><table style={{ minWidth: 1550, width: "max-content" }}><thead><tr><th>Tanggal</th><th>Cabang</th><th>MT</th><th>Rombel</th><th>Mapel</th><th>Jenis</th><th>Topik/Sub Topik</th><th>Attendance</th><th>Starchamps</th><th>Activity Score</th><th>Report Sessions</th><th>Foto KBM</th><th>Report WA</th><th>AuVi TV</th><th>LD</th></tr></thead>
-        <tbody>{loading ? <tr><td colSpan={15}><div className="empty-state"><strong>Memuat data…</strong></div></td></tr> : filtered.length === 0 ? <tr><td colSpan={15}><div className="empty-state"><div className="empty-icon">📋</div><strong>Belum ada sesi Finalized</strong><p>Sesuaikan tanggal atau filter untuk melihat sesi.</p></div></td></tr> : filtered.map(row => <tr key={row.id}>
-          <td>{formatDate(row.planning_date)}</td><td>{nameOf(branches, row.branch_id)}</td><td><strong>{nameOf(mts, row.mt_id)}</strong></td><td>{nameOf(rombels, row.rombel_id)}</td><td>{nameOf(mapels, row.mapel_id)}</td><td>{row.jenis_sesi}</td>
-          <td style={{ textAlign: "center" }}><input type="checkbox" checked={row.topik_sub_topik_done} disabled={saving === row.id} onChange={e => saveRow(row, { topik_sub_topik_done: e.target.checked })} aria-label={`Topik/Sub Topik ${nameOf(mts,row.mt_id)}`} /></td>
-          {([["attendance","Attendance"],["starchamps","Starchamps"],["activity_score","Activity Score"],["report_sessions","Report Sessions"],["foto_kbm","Foto KBM"],["report_wa","Report WA"]] as const).map(([key,label]) => <td key={key} style={{ textAlign: "center" }}><input type="checkbox" checked={row[key]} disabled={saving === row.id} onChange={e => saveRow(row, { [key]: e.target.checked })} aria-label={`${label} ${nameOf(mts,row.mt_id)}`} /></td>)}
-          <td><select className="select monitoring-select" value={row.auvi_tv_status} disabled={saving === row.id} onChange={e => saveRow(row, { auvi_tv_status: e.target.value })}>{AUVISTATUSES.map(x => <option key={x}>{x}</option>)}</select></td>
-          <td><select className="select monitoring-select" value={row.ld_status} disabled={saving === row.id} onChange={e => saveRow(row, { ld_status: e.target.value })}>{LDSTATUSES.map(x => <option key={x}>{x}</option>)}</select></td>
-        </tr>)}</tbody></table></div>
+
+    <section className="card monitoring-card-list">
+      <div className="planning-table-head monitoring-list-head"><div><h2>📊 Kelengkapan Administrasi</h2><p>MT Coach melengkapi administrasi untuk setiap sesi yang sudah Finalized.</p></div><div className="monitoring-summary"><span className="badge green">✅ {completeCount} Lengkap</span><span className="badge yellow">🟡 {incompleteCount} Belum lengkap</span></div></div>
+
+      <div className="monitoring-cards">
+        {loading ? <div className="empty-state"><strong>Memuat data…</strong></div> : filtered.length === 0 ? <div className="empty-state"><div className="empty-icon">📋</div><strong>Belum ada sesi Finalized</strong><p>Sesuaikan tanggal atau filter untuk melihat sesi.</p></div> : filtered.map(row => {
+          const done = adminDone(row); const complete = done === adminTotal; const open = openId === row.id;
+          return <article key={row.id} className={`monitoring-session-card ${complete ? "is-complete" : "is-incomplete"}`}>
+            <button type="button" className="monitoring-card-header" onClick={() => setOpenId(open ? null : row.id)} aria-expanded={open}>
+              <div className="monitoring-session-info"><div className="monitoring-mt"><span className="monitoring-status-dot">{complete ? "✓" : "!"}</span>{nameOf(mts, row.mt_id)}</div><div className="monitoring-meta">{formatDate(row.planning_date)} · {nameOf(branches, row.branch_id)}</div><div className="monitoring-submeta">{nameOf(rombels, row.rombel_id)} · {nameOf(mapels, row.mapel_id)} · {row.jenis_sesi}</div></div>
+              <div className="monitoring-card-status"><span className={`monitoring-status ${complete ? "complete" : "incomplete"}`}>{complete ? "✅ Lengkap" : "🟡 Belum lengkap"}</span><strong>{done}/{adminTotal}</strong><span className="monitoring-chevron">{open ? "⌃" : "⌄"}</span></div>
+            </button>
+
+            {open && <div className="monitoring-card-body">
+              <div className="monitoring-admin-title">KELENGKAPAN ADMINISTRASI <span>{done}/{adminTotal} selesai</span></div>
+              <div className="monitoring-admin-grid">
+                {checkboxItems.map(([key, label]) => <label key={key} className={`admin-item ${row[key] ? "done" : "todo"}`}><input type="checkbox" checked={row[key]} disabled={saving === row.id} onChange={e => saveRow(row, { [key]: e.target.checked })} /><span>{label}</span><b>{row[key] ? "✓" : "—"}</b></label>)}
+                <label className={`admin-item select-item ${row.auvi_tv_status ? "done" : "todo"}`}><span>📺 AuVi TV</span><select className="select monitoring-select" value={row.auvi_tv_status} disabled={saving === row.id} onChange={e => saveRow(row, { auvi_tv_status: e.target.value })}>{AUVISTATUSES.map(x => <option key={x}>{x}</option>)}</select></label>
+                <label className={`admin-item select-item ${row.ld_status ? "done" : "todo"}`}><span>👥 LD</span><select className="select monitoring-select" value={row.ld_status} disabled={saving === row.id} onChange={e => saveRow(row, { ld_status: e.target.value })}>{LDSTATUSES.map(x => <option key={x}>{x}</option>)}</select></label>
+              </div>
+              <div className="monitoring-save-note">{saving === row.id ? "Menyimpan perubahan…" : "Perubahan tersimpan otomatis ke shared database."}</div>
+            </div>}
+          </article>;
+        })}
+      </div>
     </section>
-    <div className="finalize-bar"><div><strong>Monitoring tersimpan otomatis</strong><small>{saving ? "Menyimpan perubahan…" : "Checkbox dan dropdown langsung tersimpan ke shared database."}</small></div><div style={{ display: "flex", gap: 10 }}><Link className="secondary-btn" href="/planning">📅 Kembali ke Planning</Link></div></div>
+
+    <div className="finalize-bar"><div><strong>Monitoring tersimpan otomatis</strong><small>Administrasi dapat dilengkapi kapan saja setelah sesi Finalized.</small></div><div style={{ display: "flex", gap: 10 }}><Link className="secondary-btn" href="/planning">📅 Kembali ke Planning</Link></div></div>
   </div>;
 }
