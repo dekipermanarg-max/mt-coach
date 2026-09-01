@@ -12,18 +12,15 @@ type Session = {
 };
 const AUVI_WEEKLY_TARGET = 10;
 const LD_ELIGIBLE_ROMBEL: Record<string, number> = {
-  "Ujung Gurun": 2, "Tarandam": 6, "Sutomo": 11, "S. Parman": 6, "Gajah Mada": 10,
-  "Solok": 6, "Payakumbuh": 9, "Painan": 6, "Manggis Ganting": 5, "Jambu Air": 6
+  "Padang - Ujung Gurun": 2, "Padang - Tarandam": 6, "Padang - Sutomo": 11, "Padang - S. Parman": 6, "Padang - Gajah Mada": 10,
+  "Solok - Pandan": 6, "Payakumbuh - Simpang Benteng": 9, "Painan - Pagaruyung": 6, "Bukittinggi - Manggis Ganting": 5, "Bukittinggi - Jambu Air": 6
 };
 function formatDate(value: string) { return value ? new Date(`${value}T00:00:00`).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : ""; }
 function defaultStart() { const d = new Date(); d.setDate(d.getDate() - 6); return d.toISOString().slice(0, 10); }
 function adminCount(s: Session) { let count = 0; if (s.topik_sub_topik_done) count++; if (s.attendance) count++; if (s.starchamps) count++; if (s.activity_score) count++; if (s.report_sessions) count++; if (s.foto_kbm) count++; if (s.report_wa) count++; if (s.auvi_tv_status) count++; if (s.ld_status) count++; return count; }
 function getBranchTargetKey(name: string) {
   const normalized = name.toLowerCase().replace(/[–—]/g, "-").replace(/\s+/g, " ").trim();
-  return Object.keys(LD_ELIGIBLE_ROMBEL).find(key => {
-    const target = key.toLowerCase();
-    return normalized === target || normalized.endsWith(` - ${target}`);
-  }) || null;
+  return Object.keys(LD_ELIGIBLE_ROMBEL).find(key => normalized === key.toLowerCase()) || null;
 }
 function weeksInRange(start: string, end: string) { const a = new Date(`${start}T00:00:00`); const b = new Date(`${end}T00:00:00`); const days = Math.max(1, Math.floor((b.getTime() - a.getTime()) / 86400000) + 1); return Math.max(1, Math.ceil(days / 7)); }
 
