@@ -37,6 +37,7 @@ export default function Monitoring() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [showWaReport, setShowWaReport] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [waDate, setWaDate] = useState(() => new Date().toISOString().slice(0, 10));
 
   async function load() {
     setLoading(true);
@@ -81,20 +82,30 @@ export default function Monitoring() {
   const incompleteRows = filtered.filter(r => adminDone(r) < adminTotal);
   const incompleteCount = incompleteRows.length;
 
+  const reportRows = useMemo(() => rows.filter(r =>
+    r.planning_date === waDate &&
+    (branchId === "all" || r.branch_id === branchId) &&
+    (selectedMT === "all" || r.mt_id === selectedMT) &&
+    `${nameOf(mts, r.mt_id)} ${nameOf(rombels, r.rombel_id)} ${nameOf(mapels, r.mapel_id)} ${r.jenis_sesi}`.toLowerCase().includes(search.toLowerCase())
+  ), [rows, waDate, branchId, selectedMT, mts, rombels, mapels, search]);
+  const reportCompleteCount = reportRows.filter(r => adminDone(r) === adminTotal).length;
+  const reportIncompleteRows = reportRows.filter(r => adminDone(r) < adminTotal);
+  const reportIncompleteCount = reportIncompleteRows.length;
+
   const waReport = useMemo(() => {
     const byMt = new Map<string, MonitoringRow[]>();
-    incompleteRows.forEach(row => {
+    reportIncompleteRows.forEach(row => {
       const key = row.mt_id || "unknown";
       if (!byMt.has(key)) byMt.set(key, []);
       byMt.get(key)!.push(row);
     });
     const lines: string[] = [
       "📋 *REPORT KELENGKAPAN ADMINISTRASI MT*",
-      `📅 Periode: ${startDate ? formatDate(startDate) : "—"} s.d. ${endDate ? formatDate(endDate) : "—"}`,
-      `📊 ${completeCount} sesi lengkap · ${incompleteCount} sesi belum lengkap`,
+      `📅 Tanggal: ${formatDate(waDate)}`,
+      `📊 ${reportCompleteCount} sesi lengkap · ${reportIncompleteCount} sesi belum lengkap`,
       "",
     ];
-    if (!incompleteRows.length) {
+    if (!reportIncompleteRows.length) {
       lines.push("🎉 *Semua sesi sudah lengkap!*", "Terima kasih, teman-teman MT Coach 🙌");
       return lines.join("\n");
     }
@@ -120,7 +131,7 @@ export default function Monitoring() {
     });
     lines.push("Terima kasih 🙏");
     return lines.join("\n");
-  }, [incompleteRows, startDate, endDate, completeCount, incompleteCount, mts, branches, rombels, mapels]);
+  }, [reportIncompleteRows, waDate, reportCompleteCount, reportIncompleteCount, mts, branches, rombels, mapels]);
 
   async function copyWaReport() {
     try {
@@ -179,7 +190,7 @@ export default function Monitoring() {
     {message && <div className="card" style={{ marginBottom: 16, padding: 14 }}>{message}</div>}
 
     <section className="card monitoring-card-list">
-      <div className="planning-table-head monitoring-list-head"><div><h2>📊 Kelengkapan Administrasi</h2><p>MT Coach melengkapi administrasi untuk setiap sesi yang sudah Finalized.</p></div><div className="monitoring-summary"><span className="badge green">✅ {completeCount} Lengkap</span><span className="badge yellow">🟡 {incompleteCount} Belum lengkap</span><button type="button" className="primary-btn wa-report-btn" onClick={() => { setCopied(false); setShowWaReport(true); }}>📲 Generate Report WA</button></div></div>
+      <div className="planning-table-head monitoring-list-head"><div><h2>📊 Kelengkapan Administrasi</h2><p>MT Coach melengkapi administrasi untuk setiap sesi yang sudah Finalized.</p></div><div className="monitoring-summary"><span className="badge green">✅ {completeCount} Lengkap</span><span className="badge yellow">🟡 {incompleteCount} Belum lengkap</span><button type="button" className="primary-btn wa-report-btn" onClick={() => { setCopied(false); setShowWaReport(true); }}>📲 Generate Report WA Hari Ini</button></div></div>
 
       <div className="monitoring-cards">
         {loading ? <div className="empty-state"><strong>Memuat data…</strong></div> : filtered.length === 0 ? <div className="empty-state"><div className="empty-icon">📋</div><strong>Belum ada sesi Finalized</strong><p>Sesuaikan tanggal atau filter untuk melihat sesi.</p></div> : filtered.map(row => {
@@ -208,8 +219,8 @@ export default function Monitoring() {
 
     {showWaReport && <div className="wa-modal-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) setShowWaReport(false); }}>
       <section className="wa-modal" role="dialog" aria-modal="true" aria-labelledby="wa-report-title">
-        <div className="wa-modal-head"><div><div className="eyebrow">MONITORING · WHATSAPP</div><h2 id="wa-report-title">📲 Report Administrasi MT</h2><p>Generate pesan berdasarkan filter tanggal, cabang, MT, dan pencarian yang sedang aktif.</p></div><button type="button" className="wa-close" onClick={() => setShowWaReport(false)} aria-label="Tutup">×</button></div>
-        <div className="wa-report-summary"><span className="badge green">✅ {completeCount} Lengkap</span><span className="badge yellow">🟡 {incompleteCount} Belum lengkap</span></div>
+        <div className="wa-modal-head"><div><div className="eyebrow">MONITORING · WHATSAPP</div><h2 id="wa-report-title">📲 Report Administrasi MT</h2><p>Generate pesan untuk satu tanggal. Cabang, MT, dan pencarian tetap mengikuti filter yang sedang aktif.</p></div><button type="button" className="wa-close" onClick={() => setShowWaReport(false)} aria-label="Tutup">×</button></div>
+        <div className="wa-report-summary"><span className="badge green">✅ {reportCompleteCount} Lengkap</span><span className="badge yellow">🟡 {reportIncompleteCount} Belum lengkap</span><label className="control-box" style={{ minWidth: 180 }}><span className="control-label">Tanggal Report</span><input className="date-input" type="date" value={waDate} onChange={e => setWaDate(e.target.value)} /></label></div>
         <textarea className="wa-report-text" value={waReport} readOnly aria-label="Preview report WhatsApp" />
         <div className="wa-modal-actions"><button type="button" className="secondary-btn" onClick={copyWaReport}>{copied ? "✅ Tersalin!" : "📋 Copy Pesan"}</button><button type="button" className="primary-btn" onClick={openWhatsApp}>💬 Buka WhatsApp</button></div>
         <div className="wa-modal-note">WhatsApp akan dibuka dengan pesan sudah terisi. Pilih grup WA MT lalu kirim.</div>
