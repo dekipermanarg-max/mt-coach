@@ -35,6 +35,8 @@ export default function Monitoring() {
   const [saving, setSaving] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
+  const [showWaReport, setShowWaReport] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -76,7 +78,66 @@ export default function Monitoring() {
   const adminPercent = (r: MonitoringRow) => Math.round((adminDone(r) / adminTotal) * 100);
   const avgAdmin = filtered.length ? Math.round(filtered.reduce((a, r) => a + adminPercent(r), 0) / filtered.length) : 0;
   const completeCount = filtered.filter(r => adminDone(r) === adminTotal).length;
-  const incompleteCount = filtered.length - completeCount;
+  const incompleteRows = filtered.filter(r => adminDone(r) < adminTotal);
+  const incompleteCount = incompleteRows.length;
+
+  const waReport = useMemo(() => {
+    const byMt = new Map<string, MonitoringRow[]>();
+    incompleteRows.forEach(row => {
+      const key = row.mt_id || "unknown";
+      if (!byMt.has(key)) byMt.set(key, []);
+      byMt.get(key)!.push(row);
+    });
+
+    const lines: string[] = [
+      "📋 *REPORT KELENGKAPAN ADMINISTRASI MT*",
+      `📅 Periode: ${startDate ? formatDate(startDate) : "—"} s.d. ${endDate ? formatDate(endDate) : "—"}`,
+      `📊 ${completeCount} sesi lengkap · ${incompleteCount} sesi belum lengkap`,
+      "",
+    ];
+
+    if (!incompleteRows.length) {
+      lines.push("🎉 *Semua sesi sudah lengkap!*", "Terima kasih, teman-teman MT Coach 🙌");
+      return lines.join("\n");
+    }
+
+    lines.push("Mohon segera dilengkapi administrasinya ya. Berikut sesi yang masih belum lengkap:", "");
+    let number = 1;
+    Array.from(byMt.entries()).sort((a, b) => nameOf(mts, a[0]).localeCompare(nameOf(mts, b[0]))).forEach(([mtId, mtRows]) => {
+      lines.push(`*${nameOf(mts, mtId)}*`);
+      mtRows.sort((a, b) => a.planning_date.localeCompare(b.planning_date)).forEach(row => {
+        const missing = [
+          !row.topik_sub_topik_done && "Topik/Subtopik",
+          !row.attendance && "Attendance",
+          !row.starchamps && "Starchamps",
+          !row.activity_score && "Activity Score",
+          !row.report_sessions && "Report Sessions",
+          !row.foto_kbm && "Foto KBM",
+          !row.report_wa && "Report WA",
+          !row.auvi_tv_status && "AuVi TV",
+          !row.ld_status && "LD",
+        ].filter(Boolean) as string[];
+        lines.push(`${number++}. ${formatDate(row.planning_date)} · ${nameOf(branches, row.branch_id)}`, `   ${nameOf(rombels, row.rombel_id)} · ${nameOf(mapels, row.mapel_id)} · ${row.jenis_sesi}`, `   ❌ Belum: ${missing.join(", ")}`);
+      });
+      lines.push("");
+    });
+    lines.push("Terima kasih 🙏");
+    return lines.join("\n");
+  }, [incompleteRows, startDate, endDate, completeCount, incompleteCount, mts, branches, rombels, mapels]);
+
+  async function copyWaReport() {
+    try {
+      await navigator.clipboard.writeText(waReport);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      setMessage("Tidak bisa menyalin otomatis. Silakan blok teks laporan lalu copy.");
+    }
+  }
+
+  function openWhatsApp() {
+    window.open(`https://wa.me/?text=${encodeURIComponent(waReport)}`, "_blank", "noopener,noreferrer");
+  }
 
   async function saveRow(row: MonitoringRow, patch: Partial<MonitoringRow>) {
     setSaving(row.id); setMessage("");
@@ -120,7 +181,7 @@ export default function Monitoring() {
     {message && <div className="card" style={{ marginBottom: 16, padding: 14 }}>{message}</div>}
 
     <section className="card monitoring-card-list">
-      <div className="planning-table-head monitoring-list-head"><div><h2>📊 Kelengkapan Administrasi</h2><p>MT Coach melengkapi administrasi untuk setiap sesi yang sudah Finalized.</p></div><div className="monitoring-summary"><span className="badge green">✅ {completeCount} Lengkap</span><span className="badge yellow">🟡 {incompleteCount} Belum lengkap</span></div></div>
+      <div className="planning-table-head monitoring-list-head"><div><h2>📊 Kelengkapan Administrasi</h2><p>MT Coach melengkapi administrasi untuk setiap sesi yang sudah Finalized.</p></div><div className="monitoring-summary"><span className="badge green">✅ {completeCount} Lengkap</span><span className="badge yellow">🟡 {incompleteCount} Belum lengkap</span><button type="button" className="primary-btn wa-report-btn" onClick={() => { setCopied(false); setShowWaReport(true); }}>📲 Generate Report WA</button></div></div>
 
       <div className="monitoring-cards">
         {loading ? <div className="empty-state"><strong>Memuat data…</strong></div> : filtered.length === 0 ? <div className="empty-state"><div className="empty-icon">📋</div><strong>Belum ada sesi Finalized</strong><p>Sesuaikan tanggal atau filter untuk melihat sesi.</p></div> : filtered.map(row => {
@@ -146,5 +207,15 @@ export default function Monitoring() {
     </section>
 
     <div className="finalize-bar"><div><strong>Monitoring tersimpan otomatis</strong><small>Administrasi dapat dilengkapi kapan saja setelah sesi Finalized.</small></div><div style={{ display: "flex", gap: 10 }}><Link className="secondary-btn" href="/planning">📅 Kembali ke Planning</Link></div></div>
+
+    {showWaReport && <div className="wa-modal-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) setShowWaReport(false); }}>
+      <section className="wa-modal" role="dialog" aria-modal="true" aria-labelledby="wa-report-title">
+        <div className="wa-modal-head"><div><div className="eyebrow">MONITORING · WHATSAPP</div><h2 id="wa-report-title">📲 Report Administrasi MT</h2><p>Generate pesan berdasarkan filter tanggal, cabang, MT, dan pencarian yang sedang aktif.</p></div><button type="button" className="wa-close" onClick={() => setShowWaReport(false)} aria-label="Tutup">×</button></div>
+        <div className="wa-report-summary"><span className="badge green">✅ {completeCount} Lengkap</span><span className="badge yellow">🟡 {incompleteCount} Belum lengkap</span></div>
+        <textarea className="wa-report-text" value={waReport} readOnly aria-label="Preview report WhatsApp" />
+        <div className="wa-modal-actions"><button type="button" className="secondary-btn" onClick={copyWaReport}>{copied ? "✅ Tersalin!" : "📋 Copy Pesan"}</button><button type="button" className="primary-btn" onClick={openWhatsApp}>💬 Buka WhatsApp</button></div>
+        <div className="wa-modal-note">WhatsApp akan dibuka dengan pesan sudah terisi. Pilih grup WA MT lalu kirim.</div>
+      </section>
+    </div>}
   </div>;
 }
