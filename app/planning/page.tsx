@@ -35,7 +35,7 @@ export default function PlanningPage() {
     setLoading(true); const b = await supabase.from("branches").select("id").eq("name", branch).single();
     if (!b.data) { setMessage("Cabang tidak ditemukan di database."); setLoading(false); return; }
     setBranchId(b.data.id);
-    const { data, error } = await supabase.from("weekly_planning").select("id,planning_date,jenis_sesi,auvi_tv,ld,status,master_mt(name),master_rombel(name),master_mapel(name)").eq("branch_id", b.data.id).eq("planning_date", date).order("created_at");
+    const { data, error } = await supabase.from("weekly_planning").select("id,planning_date,jenis_sesi,auvi_tv,ld,status,mt:master_mt(name),rombel:master_rombel(name),mapel:master_mapel(name)").eq("branch_id", b.data.id).eq("planning_date", date).order("created_at");
     if (error) setMessage(`Gagal memuat planning: ${error.message}`); else { const normalized = (data || []).map((row: any) => ({ ...row, mt: normalizeRelation(row.mt), rombel: normalizeRelation(row.rombel), mapel: normalizeRelation(row.mapel) })) as PlanningRow[]; setSessions(normalized); setStatus(normalized.some(x => x.status === "Finalized") ? "Finalized" : "Draft"); }
     setLoading(false);
   }
