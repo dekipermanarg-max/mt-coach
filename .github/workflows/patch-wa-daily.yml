@@ -1,0 +1,64 @@
+name: Patch daily WA report
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch monitoring page
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('app/monitoring/page.tsx')
+          s = p.read_text()
+          marker = '  const [copied, setCopied] = useState(false);\n'
+          insert = marker + '  const [waDate, setWaDate] = useState(() => new Date().toISOString().slice(0, 10));\n'
+          if 'const [waDate, setWaDate]' not in s:
+              s = s.replace(marker, insert, 1)
+
+          marker = '  const incompleteCount = incompleteRows.length;\n\n'
+          insert = '''  const incompleteCount = incompleteRows.length;\n\n  const reportRows = useMemo(() => rows.filter(r =>\n    r.planning_date === waDate &&\n    (branchId === "all" || r.branch_id === branchId) &&\n    (selectedMT === "all" || r.mt_id === selectedMT) &&\n    `${nameOf(mts, r.mt_id)} ${nameOf(rombels, r.rombel_id)} ${nameOf(mapels, r.mapel_id)} ${r.jenis_sesi}`.toLowerCase().includes(search.toLowerCase())\n  ), [rows, waDate, branchId, selectedMT, mts, rombels, mapels, search]);\n  const reportCompleteCount = reportRows.filter(r => adminDone(r) === adminTotal).length;\n  const reportIncompleteRows = reportRows.filter(r => adminDone(r) < adminTotal);\n  const reportIncompleteCount = reportIncompleteRows.length;\n\n'''
+          if 'const reportRows = useMemo' not in s:
+              s = s.replace(marker, insert, 1)
+
+          a = s.index('  const waReport = useMemo(() => {')
+          b = s.index('\n\n  async function copyWaReport()', a)
+          block = s[a:b]
+          block = block.replace('incompleteRows.forEach(row => {', 'reportIncompleteRows.forEach(row => {', 1)
+          block = block.replace('`📅 Periode: ${startDate ? formatDate(startDate) : "—"} s.d. ${endDate ? formatDate(endDate) : "—"}`', '`📅 Tanggal: ${formatDate(waDate)}`', 1)
+          block = block.replace('`📊 ${completeCount} sesi lengkap · ${incompleteCount} sesi belum lengkap`', '`📊 ${reportCompleteCount} sesi lengkap · ${reportIncompleteCount} sesi belum lengkap`', 1)
+          block = block.replace('if (!incompleteRows.length)', 'if (!reportIncompleteRows.length)', 1)
+          block = block.replace('Array.from(byMt.entries())', 'Array.from(byMt.entries())', 1)
+          block = block.replace('  }, [incompleteRows, startDate, endDate, completeCount, incompleteCount, mts, branches, rombels, mapels]);', '  }, [reportIncompleteRows, waDate, reportCompleteCount, reportIncompleteCount, mts, branches, rombels, mapels]);', 1)
+          s = s[:a] + block + s[b:]
+
+          s = s.replace('>📲 Generate Report WA</button>', '>📲 Generate Report WA Hari Ini</button>', 1)
+          old = '<div className="wa-report-summary"><span className="badge green">✅ {completeCount} Lengkap</span><span className="badge yellow">🟡 {incompleteCount} Belum lengkap</span></div>'
+          new = '<div className="wa-report-summary"><span className="badge green">✅ {reportCompleteCount} Lengkap</span><span className="badge yellow">🟡 {reportIncompleteCount} Belum lengkap</span><label className="control-box" style={{ minWidth: 180 }}><span className="control-label">Tanggal Report</span><input className="date-input" type="date" value={waDate} onChange={e => setWaDate(e.target.value)} /></label></div>'
+          if old in s:
+              s = s.replace(old, new, 1)
+          old2 = 'Generate pesan berdasarkan filter tanggal, cabang, MT, dan pencarian yang sedang aktif.'
+          new2 = 'Generate pesan untuk satu tanggal. Cabang, MT, dan pencarian tetap mengikuti filter yang sedang aktif.'
+          s = s.replace(old2, new2, 1)
+          p.write_text(s)
+          PY
+      - name: Commit patch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app/monitoring/page.tsx
+          git commit -m 'feat: make WA report daily' || exit 0
+          git push
+      - name: Remove one-off workflow
+        run: |
+          git rm .github/workflows/patch-wa-daily.yml || true
+          git commit -m 'chore: remove one-off patch workflow' || true
+          git push || true
