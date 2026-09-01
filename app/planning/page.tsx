@@ -44,7 +44,6 @@ export default function PlanningPage() {
   const [date, setDate] = useState(DEFAULT_DATE);
   const [branch, setBranch] = useState(BRANCHES[0]);
   const [branchId, setBranchId] = useState("");
-  // IMPORTANT: Planning only displays Draft rows. Finalized rows are owned by Monitoring.
   const [sessions, setSessions] = useState<PlanningRow[]>([]);
   const [mtRows, setMtRows] = useState<MasterRow[]>([]);
   const [rombelRows, setRombelRows] = useState<MasterRow[]>([]);
@@ -97,9 +96,6 @@ export default function PlanningPage() {
       setLoading(false);
       return;
     }
-
-    // Finalized rows are deliberately excluded from Weekly Planning.
-    // They remain in Supabase and are shown by Monitoring.
     const { data, error } = await supabase
       .from("weekly_planning")
       .select("id,planning_date,jenis_sesi,auvi_tv,ld,status,mt_id,rombel_id,mapel_id")
@@ -107,7 +103,6 @@ export default function PlanningPage() {
       .eq("planning_date", date)
       .eq("status", "Draft")
       .order("created_at");
-
     if (error) {
       setMessage(`Gagal memuat planning: ${error.message}`);
       setSessions([]);
@@ -126,12 +121,9 @@ export default function PlanningPage() {
   }, [branch, date]);
 
   const selectedDateLabel = formatDate(date);
-  const nameOf = (rows: MasterRow[], id: string | null) =>
-    rows.find((x) => x.id === id)?.name || "—";
+  const nameOf = (rows: MasterRow[], id: string | null) => rows.find((x) => x.id === id)?.name || "—";
   const totalRombels = new Set(sessions.map((s) => s.rombel_id).filter(Boolean)).size;
-  const auviRombels = new Set(
-    sessions.filter((s) => s.auvi_tv).map((s) => s.rombel_id).filter(Boolean),
-  ).size;
+  const auviRombels = new Set(sessions.filter((s) => s.auvi_tv).map((s) => s.rombel_id).filter(Boolean)).size;
   const auviCoverage = totalRombels ? Math.round((auviRombels / totalRombels) * 100) : 0;
   const ldCount = sessions.filter((s) => s.ld).length;
 
@@ -159,42 +151,23 @@ export default function PlanningPage() {
   async function addOrUpdateSession(e: FormEvent) {
     e.preventDefault();
     if (!branchId || !mt || !rombel || !mapel) return;
-
-    const payload = {
-      branch_id: branchId,
-      planning_date: date,
-      mt_id: mt,
-      rombel_id: rombel,
-      mapel_id: mapel,
-      jenis_sesi: type,
-      auvi_tv: auviTv,
-      ld,
-      status: "Draft",
-    };
-
+    const payload = { branch_id: branchId, planning_date: date, mt_id: mt, rombel_id: rombel, mapel_id: mapel, jenis_sesi: type, auvi_tv: auviTv, ld, status: "Draft" };
     const result = editingId
       ? await supabase.from("weekly_planning").update(payload).eq("id", editingId).eq("status", "Draft")
       : await supabase.from("weekly_planning").insert(payload);
-
     if (result.error) {
       setMessage(`Gagal menyimpan sesi: ${result.error.message}`);
       return;
     }
-
     setMessage(editingId ? "Sesi berhasil diperbarui." : "Sesi berhasil ditambahkan ke Draft.");
     resetForm();
     await loadSessions();
   }
 
   async function deleteSession(id: string) {
-    const { error } = await supabase
-      .from("weekly_planning")
-      .delete()
-      .eq("id", id)
-      .eq("status", "Draft");
-    if (error) {
-      setMessage(`Gagal menghapus: ${error.message}`);
-    } else {
+    const { error } = await supabase.from("weekly_planning").delete().eq("id", id).eq("status", "Draft");
+    if (error) setMessage(`Gagal menghapus: ${error.message}`);
+    else {
       setMessage("Sesi dihapus dari Draft.");
       await loadSessions();
     }
@@ -208,7 +181,6 @@ export default function PlanningPage() {
       .eq("branch_id", branchId)
       .eq("planning_date", date)
       .eq("status", "Draft");
-
     if (error) {
       setMessage(`Gagal menyimpan draft: ${error.message}`);
       return;
@@ -220,21 +192,16 @@ export default function PlanningPage() {
 
   async function finalize() {
     if (!branchId || sessions.length === 0) return;
-
     const { error } = await supabase
       .from("weekly_planning")
       .update({ status: "Finalized", updated_at: new Date().toISOString() })
       .eq("branch_id", branchId)
       .eq("planning_date", date)
       .eq("status", "Draft");
-
     if (error) {
       setMessage(`Gagal finalisasi: ${error.message}`);
       return;
     }
-
-    // The reload intentionally returns zero rows because Planning only shows Drafts.
-    // The finalized sessions are now available in Monitoring.
     resetForm();
     setMessage("Planning berhasil difinalisasi dan masuk ke Monitoring.");
     setModal("finalize");
@@ -272,44 +239,26 @@ export default function PlanningPage() {
       </section>
 
       <div className="grid planning-kpis">
-        <div className="card planning-kpi">
-          <div className="planning-kpi-top"><div className="kpi-label">Draft Session</div><div className="kpi-mini-icon">📋</div></div>
-          <div className="kpi-value">{sessions.length}</div>
-          <div className="kpi-note">Sesi yang belum difinalisasi</div>
-        </div>
-        <div className="card planning-kpi">
-          <div className="planning-kpi-top"><div className="kpi-label">AuVi TV Coverage</div><div className="kpi-mini-icon">🎥</div></div>
-          <div className="kpi-value">{auviCoverage}%</div>
-          <div className="kpi-note">{auviRombels}/{totalRombels} rombel · target ≥ 50%</div>
-        </div>
-        <div className="card planning-kpi">
-          <div className="planning-kpi-top"><div className="kpi-label">LD</div><div className="kpi-mini-icon">👥</div></div>
-          <div className="kpi-value">{ldCount}<span style={{ fontSize: 14, color: "#94a3b8", marginLeft: 5 }}>/ 10</span></div>
-          <div className="kpi-note">Target 10 sesi per minggu</div>
-        </div>
+        <div className="card planning-kpi"><div className="planning-kpi-top"><div className="kpi-label">Draft Session</div><div className="kpi-mini-icon">📋</div></div><div className="kpi-value">{sessions.length}</div><div className="kpi-note">Sesi yang belum difinalisasi</div></div>
+        <div className="card planning-kpi"><div className="planning-kpi-top"><div className="kpi-label">AuVi TV Coverage</div><div className="kpi-mini-icon">🎥</div></div><div className="kpi-value">{auviCoverage}%</div><div className="kpi-note">{auviRombels}/{totalRombels} rombel · target ≥ 50%</div></div>
+        <div className="card planning-kpi"><div className="planning-kpi-top"><div className="kpi-label">LD</div><div className="kpi-mini-icon">👥</div></div><div className="kpi-value">{ldCount}<span style={{ fontSize: 14, color: "#94a3b8", marginLeft: 5 }}>/ 10</span></div><div className="kpi-note">Target 10 sesi per minggu</div></div>
       </div>
 
       <form className="card input-card" onSubmit={addOrUpdateSession}>
         <div className="section-title">
-          <div>
-            <h2>{editingId ? "Edit Sesi" : "Tambah Sesi"}</h2>
-            <p>{editingId ? "Perbarui detail sesi lalu simpan perubahan." : <>Input sesi untuk <strong>{selectedDateLabel}</strong>. Jam tidak diperlukan.</>}</p>
-          </div>
+          <div><h2>{editingId ? "Edit Sesi" : "Tambah Sesi"}</h2><p>{editingId ? "Perbarui detail sesi lalu simpan perubahan." : <>Input sesi untuk <strong>{selectedDateLabel}</strong>. Jam tidak diperlukan.</>}</p></div>
           <span className="section-chip">SHARED DATABASE</span>
         </div>
-
         <div className="planning-form-grid">
           <label className="planning-field"><span>MT</span><select value={mt} onChange={(e) => setMt(e.target.value)} disabled={loading} required>{mtRows.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
           <label className="planning-field"><span>Rombel</span><select value={rombel} onChange={(e) => setRombel(e.target.value)} disabled={loading} required>{rombelRows.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
           <label className="planning-field"><span>Mapel</span><select value={mapel} onChange={(e) => setMapel(e.target.value)} disabled={loading} required>{mapelRows.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
           <label className="planning-field"><span>Jenis Sesi</span><select value={type} onChange={(e) => setType(e.target.value as (typeof SESSION_TYPES)[number])}><option>KBM</option><option>Klinik PR</option><option>Trial Class</option></select></label>
         </div>
-
         <div className="planning-options">
           <label className="option-pill"><input type="checkbox" checked={auviTv} onChange={(e) => setAuviTv(e.target.checked)} /> 🎥 AuVi TV</label>
           <label className="option-pill"><input type="checkbox" checked={ld} onChange={(e) => setLd(e.target.checked)} /> 👥 LD</label>
         </div>
-
         <div style={{ display: "flex", gap: 10 }}>
           <button className="add-session-btn" type="submit" disabled={loading}>{editingId ? "💾 Simpan Perubahan" : "＋ Tambah Sesi"}</button>
           {editingId && <button type="button" className="secondary-btn" onClick={resetForm}>Batal</button>}
@@ -317,10 +266,7 @@ export default function PlanningPage() {
       </form>
 
       <section className="card planning-table-card">
-        <div className="planning-table-head">
-          <div><h2>Daftar Sesi</h2><p>{branch} · {selectedDateLabel}</p></div>
-          <span className="section-chip">{sessions.length} sesi Draft</span>
-        </div>
+        <div className="planning-table-head"><div><h2>Daftar Sesi</h2><p>{branch} · {selectedDateLabel}</p></div><span className="section-chip">{sessions.length} sesi Draft</span></div>
         <div className="planning-table-wrap">
           <table>
             <thead><tr><th>MT</th><th>Rombel</th><th>Mapel</th><th>Jenis</th><th>AuVi TV</th><th>LD</th><th>Aksi</th></tr></thead>
@@ -346,7 +292,6 @@ export default function PlanningPage() {
       <div className="finalize-bar">
         <div><strong>{branch}</strong><small>{message || "Input sesi selesai? Simpan dulu sebagai Draft."}</small></div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <a className="secondary-btn" href="/mt-coach/master-data">⚙️ Kelola Master Data</a>
           <button className="secondary-btn" type="button" onClick={saveDraft} disabled={sessions.length === 0}>📝 Simpan sebagai Draft</button>
           <button className="finalize-btn" type="button" onClick={finalize} disabled={sessions.length === 0}>🔒 Finalize Planning</button>
         </div>
