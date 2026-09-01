@@ -1,7 +1,9 @@
 name: Update WA report format
 
 on:
-  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/update-wa-report.yml'
 
 permissions:
   contents: write
@@ -57,7 +59,8 @@ jobs:
   }, [reportIncompleteRows, waDate, reportCompleteCount, reportIncompleteCount, mts, branches, rombels, mapels, branchId]);
 
 '''
-          path.write_text(text[:start] + replacement + text[end:])
+          if replacement.strip() not in text:
+              path.write_text(text[:start] + replacement + text[end:])
           PY
       - name: Commit change
         run: |
