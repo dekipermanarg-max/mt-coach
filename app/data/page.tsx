@@ -39,7 +39,14 @@ export default function DataPage() {
 
   return (
     <div className="page-wrap">
-      <div className="page-head"><div><h1>Data</h1><p>Kelola data MT, rombel, dan cabang.</p></div>{tab !== "branch" && <button className="primary-btn" onClick={() => setShowForm(true)}>＋ Tambah {tab === "mt" ? "MT" : "Rombel"}</button>}</div>
+      <section className="planning-hero">
+        <div className="planning-hero-row">
+          <div><div className="eyebrow">MT COACH · MANAGEMENT</div><h1>Master Data</h1><p>Kelola data MT, rombel, dan cabang yang digunakan oleh seluruh modul.</p></div>
+          <span className="badge planning-status">⚙️ Data</span>
+        </div>
+      </section>
+
+      <div className="page-head"><div><h2>Master Data</h2><p>Kelola data MT, rombel, dan cabang.</p></div>{tab !== "branch" && <button className="primary-btn" onClick={() => setShowForm(true)}>＋ Tambah {tab === "mt" ? "MT" : "Rombel"}</button>}</div>
       <div className="data-tabs"><button className={tab === "mt" ? "data-tab active" : "data-tab"} onClick={() => setTab("mt")}>👤 MT</button><button className={tab === "rombel" ? "data-tab active" : "data-tab"} onClick={() => setTab("rombel")}>🏫 Rombel</button><button className={tab === "branch" ? "data-tab active" : "data-tab"} onClick={() => setTab("branch")}>🏢 Cabang</button></div>
       {tab === "mt" && <div className="table-wrap"><table><thead><tr><th>Nama MT</th><th>Cabang</th><th>Status</th><th>Aksi</th></tr></thead><tbody>{mts.map((mt) => <tr key={mt.id}><td><strong>{mt.name}</strong></td><td>{mt.branch}</td><td><span className={`badge ${mt.status === "Active" ? "green" : "red"}`}>{mt.status}</span></td><td><button className="button secondary" onClick={() => toggleMT(mt.id)}>{mt.status === "Active" ? "Nonaktifkan" : "Aktifkan"}</button></td></tr>)}</tbody></table></div>}
       {tab === "rombel" && <div className="table-wrap"><table><thead><tr><th>Rombel</th><th>Jenjang</th><th>Cabang</th><th>Status</th><th>Aksi</th></tr></thead><tbody>{rombels.map((rombel) => <tr key={rombel.id}><td><strong>{rombel.name}</strong></td><td>{rombel.level}</td><td>{rombel.branch}</td><td><span className={`badge ${rombel.status === "Active" ? "green" : "red"}`}>{rombel.status}</span></td><td><button className="button secondary" onClick={() => toggleRombel(rombel.id)}>{rombel.status === "Active" ? "Nonaktifkan" : "Aktifkan"}</button></td></tr>)}</tbody></table></div>}
