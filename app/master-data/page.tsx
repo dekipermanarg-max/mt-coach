@@ -112,7 +112,26 @@ export default function MasterDataPage() {
                     <td>{i + 1}</td>
                     <td><span className="table-primary">{item.name}</span></td>
                     <td style={{ textAlign: "right" }}>
-                      <button className="row-delete" onClick={() => remove(key, item)}>Hapus</button>
+                      <button
+                        className="row-delete"
+                        title={`Hapus ${item.name}`}
+                        aria-label={`Hapus ${item.name}`}
+                        onClick={() => remove(key, item)}
+                        style={{
+                          border: "1px solid #fecaca",
+                          background: "#fff7f7",
+                          color: "#dc2626",
+                          borderRadius: 8,
+                          padding: "6px 9px",
+                          cursor: "pointer",
+                          fontSize: 11,
+                          fontWeight: 700,
+                          lineHeight: 1,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        🗑️ Hapus
+                      </button>
                     </td>
                   </tr>
                 ))}
