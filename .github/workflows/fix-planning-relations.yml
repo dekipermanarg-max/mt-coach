@@ -22,34 +22,14 @@ jobs:
           s = p.read_text()
           old = 'master_mt(name),master_rombel(name),master_mapel(name)'
           new = 'mt:master_mt(name),rombel:master_rombel(name),mapel:master_mapel(name)'
-          if old not in s:
-              print('Relation aliases already fixed or pattern not found.')
-              raise SystemExit(0)
-          p.write_text(s.replace(old, new, 1))
+          if old in s: p.write_text(s.replace(old, new, 1))
           PY
       - name: Revise WhatsApp admin report
         run: |
-          python - <<'PY'
-          from pathlib import Path
-          import base64
-          p = Path('app/monitoring/page.tsx')
-          s = p.read_text()
-          start = s.find('  const waReport = useMemo(() => {')
-          end = s.find('  async function copyWaReport()', start)
-          if start == -1 or end == -1:
-              print('WA report block not found; skipping.')
-              raise SystemExit(0)
-          replacement = base64.b64decode('ICBjb25zdCB3YVJlcG9ydCA9IHVzZU1lbW8oKCkgPT4gewogICAgY29uc3QgYnlNdCA9IG5ldyBNYXA8c3RyaW5nLCBNb25pdG9yaW5nUm93W10+KCk7CiAgICByZXBvcnRJbmNvbXBsZXRlUm93cy5mb3JFYWNoKHJvdyA9PiB7CiAgICAgIGNvbnN0IGtleSA9IHJvdy5tdF9pZCB8fCAidW5rbm93biI7CiAgICAgIGlmICghYnlNdC5oYXMobmV5KSkgYnlNdC5zZXQoa2V5LCBbXSk7CiAgICAgIGJ5TXQuZ2V0KGtleSkhLnB1c2gocm93KTsKICAgIH0pOwogICAgY29uc3QgYnJhbmNoTGFiZWwgPSBicmFuY2hJZCA9PT0gImFsbCIgPyAiU2VtdWEgQ2FiYW5nIiA6IG5hbWVPZihicmFuY2hlcywgYnJhbmNoSWQpOwogICAgY29uc3QgbGluZXM6IHN0cmluZ1tdID0gWwogICAgICAi8J+TiyAqUkVQT1JUIEFETUlOSVNUUkFTSSBNVCoiLAogICAgICBg8J+ThSAke2Zvcm1hdERhdGUod2FEYXRlKX1gLAogICAgICBg8J+PqyAke2JyYW5jaExhYmVsfWAsCiAgICAgIGDwn5OKICoke3JlcG9ydENvbXBsZXRlQ291bnR9IGxlbmdrYXAgwrcgJHtyZXBvcnRJbmNvbXBsZXRlQ291bnR9IGJlbHVtIGxlbmdrYXAqYCwKICAgICAgIiIsCiAgICBdOwogICAgaWYgKCFyZXBvcnRJbmNvbXBsZXRlUm93cy5sZW5ndGgpIHsKICAgICAgbGluZXMucHVzaCgi8J+OiSAqU2VtdWEgc2VzaSBzdWRhaCBsZW5na2FwISoiLCAi8J+ZjyBUZXJpbWEga2FzaSwgdGVtYW4tdGVtYW4gTVQuIik7CiAgICAgIHJldHVybiBsaW5lcy5qb2luKCJcbiIpOwogICAgfQogICAgbGluZXMucHVzaCgi4p2gICoqTW9ob24gc2VnZXJhIGxlbmdrYXBpIGFkbWluaXN0cmFzaSBzZXNpIGJlcmlrdXQ6KioiLCAiIik7CiAgICBsZXQgbnVtYmVyID0gMTsKICAgIEFycmF5LmZyb20oYnlNdC5lbnRyaWVzKCkpLnNvcnQoKGEsIGIpID0+IG5hbWVPZih0cywgYVswXSkubG9jYWxlQ29tcGFyZShuYW1lT2YobXRzLCBiWzBdKSkpLmZvckVhY2goKFttdElkLCBtdFJvd3NdKSA9PiB7CiAgICAgIGxpbmVzLnB1c2goYCoke25hbWVPZihtdHMsIG10SWQpfSpgKTsKICAgICAgbXRSb3dzLmZvckVhY2gocm93ID0+IHsKICAgICAgICBjb25zdCBtaXNzaW5nID0gaXNTaW1wbGVTZXNzaW9uKHJvdykgPyAoIXJvdy5hdHRlbmRhbmNlID8gWyJBdHRlbmRhbmNlIl0gOiBbXSkgOiBbCiAgICAgICAgICAhcm93LnRvcGlrX3N1Yl90b3Bpa19kb25lICYmICJUb3Bpay9TdWJ0b3BpayIsICFyb3cuYXR0ZW5kYW5jZSAmJiAiQXR0ZW5kYW5jZSIsICFyb3cuc3RhcmNoYW1wcyAmJiAiU3RhcmNoYW1wcyIsCiAgICAgICAgICAhcm93LmFjdGl2aXR5X3Njb3JlICYmICJBY3Rpdml0eSBTY29yZSIsICFyb3cucmVwb3J0X3Nlc3Npb25zICYmICJSZXBvcnQgU2Vzc2lvbnMiLCAhcm93LmZvdG9fa2JtICYmICJGb3RvIEtCTSIsCiAgICAgICAgICAhcm93LnJlcG9ydF93YSAmJiAiUmVwb3J0IFdBIiwgIXJvdy5hdXZpX3R2X3N0YXR1cyAmJiAiQXVWaSBUViIsICFyb3cubGRfc3RhdHVzICYmICJMRCIsCiAgICAgICAgXS5maWx0ZXIoQm9vbGVhbikgYXMgc3RyaW5nW107CiAgICAgICAgbGluZXMucHVzaCgKICAgICAgICAgIGAke251bWJlcisrfS4gJHtuYW1lT2Yocm9tYmVscywgcm93LnJvbWJlbF9pZCl9IMK3ICR7bmFtZU9mKG1hcGVscywgcm93Lm1hcGVsX2lkKX0gwrcgJHtyb3cuamVuaXNfc2VzaX1gLAogICAgICAgICAgYCAgIOKdjCAke21pc3Npbmcuam9pbigiIMK3ICIpfWAsCiAgICAgICAgICAiIiwKICAgICAgICApOwogICAgICB9KTsKICAgIH0pOwogICAgbGluZXMucHVzaCgi8J+PjyAqWXVrLCBzZWdlcmEgZGlsZW5na2FwaSBhZ2FyIGFkbWluaXN0cmFzaSBzZXNpIHRlcmNhdGF0IGxlbmdrYXAuKiIpOwogICAgcmV0dXJuIGxpbmVzLmpvaW4oIlxuIik7CiAgfSwgW3JlcG9ydEluY29tcGxldGVSb3dzLCB3YURhdGUsIHJlcG9ydENvbXBsZXRlQ291bnQsIHJlcG9ydEluY29tcGxldGVDb3VudCwgbXRzLCBicmFuY2hlcywgcm9tYmVscywgbWFwZWxzLCBicmFuY2hJZF0pOwoK').decode()
-          p.write_text(s[:start] + replacement + s[end:])
-          PY
+          python -c 'from pathlib import Path; p=Path(\'app/monitoring/page.tsx\'); s=p.read_text(); start=s.find(\'  const waReport = useMemo(() => {\'); end=s.find(\'  async function copyWaReport()\', start); replacement="  const waReport = useMemo(() => {\n    const byMt = new Map<string, MonitoringRow[]>();\n    reportIncompleteRows.forEach(row => {\n      const key = row.mt_id || \\"unknown\\";\n      if (!byMt.has(key)) byMt.set(key, []);\n      byMt.get(key)!.push(row);\n    });\n    const branchLabel = branchId === \\"all\\" ? \\"Semua Cabang\\" : nameOf(branches, branchId);\n    const lines: string[] = [\n      \\"📋 *REPORT ADMINISTRASI MT*\\",\n      `📅 ${formatDate(waDate)}`,\n      `🏫 ${branchLabel}`,\n      `📊 *${reportCompleteCount} lengkap · ${reportIncompleteCount} belum lengkap*`,\n      \\"\\",\n    ];\n    if (!reportIncompleteRows.length) {\n      lines.push(\\"🎉 *Semua sesi sudah lengkap!*\\", \\"🙏 Terima kasih, teman-teman MT.\\");\n      return lines.join(\\"\\n\\");\n    }\n    lines.push(\\"⚠️ *Mohon segera lengkapi administrasi sesi berikut:*\\", \\"\\");\n    let number = 1;\n    Array.from(byMt.entries()).sort((a, b) => nameOf(mts, a[0]).localeCompare(nameOf(mts, b[0]))).forEach(([mtId, mtRows]) => {\n      lines.push(`*${nameOf(mts, mtId)}*`);\n      mtRows.forEach(row => {\n        const missing = isSimpleSession(row) ? (!row.attendance ? [\\"Attendance\\"] : []) : [\n          !row.topik_sub_topik_done && \\"Topik/Subtopik\\", !row.attendance && \\"Attendance\\", !row.starchamps && \\"Starchamps\\",\n          !row.activity_score && \\"Activity Score\\", !row.report_sessions && \\"Report Sessions\\", !row.foto_kbm && \\"Foto KBM\\",\n          !row.report_wa && \\"Report WA\\", !row.auvi_tv_status && \\"AuVi TV\\", !row.ld_status && \\"LD\\",\n        ].filter(Boolean) as string[];\n        lines.push(\n          `${number++}. ${nameOf(rombels, row.rombel_id)} · ${nameOf(mapels, row.mapel_id)} · ${row.jenis_sesi}`,\n          `   ❌ ${missing.join(\\" · \\")}`,\n          \\"\\",\n        );\n      });\n    });\n    lines.push(\\"🙏 *Yuk, segera dilengkapi agar administrasi sesi tercatat lengkap.*\\");\n    return lines.join(\\"\\n\\");\n  }, [reportIncompleteRows, waDate, reportCompleteCount, reportIncompleteCount, mts, branches, rombels, mapels, branchId]);\n"; p.write_text(s[:start]+replacement+s[end:]) if start!=-1 and end!=-1 else print(\'WA report block not found\')'
       - name: Commit fix
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add app/planning/page.tsx app/monitoring/page.tsx
-          if git diff --cached --quiet; then
-            echo 'No changes to commit.'
-          else
-            git commit -m 'Fix Weekly Planning master relation aliases'
-            git push
-          fi
+          if git diff --cached --quiet; then echo 'No changes to commit.'; else git commit -m 'Revise WhatsApp admin report format'; git push; fi
