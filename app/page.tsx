@@ -28,7 +28,7 @@ const LD_ELIGIBLE_ROMBELS: Record<string, number> = {
   "Ujung Gurun": 2,
   "Tarandam": 6,
   "Sutomo": 11,
-  "S. Parman": 3,
+  "S. Parman": 6,
   "Gajah Mada": 10,
   "Solok": 6,
   "Payakumbuh": 9,
