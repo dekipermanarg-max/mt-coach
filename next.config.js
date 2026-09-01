@@ -1,10 +1,10 @@
 /** @type {import('next').NextConfig} */
-const isGithubPages = process.env.GITHUB_ACTIONS === 'true';
 
+// The app is served from the custom domain at the domain root.
+// Do not apply the repository /mt-coach basePath or assetPrefix.
 const nextConfig = {
   output: 'export',
   trailingSlash: true,
-  ...(isGithubPages ? { basePath: '/mt-coach', assetPrefix: '/mt-coach/' } : {}),
 };
 
 module.exports = nextConfig;
