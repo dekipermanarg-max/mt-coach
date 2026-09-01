@@ -88,19 +88,16 @@ export default function Monitoring() {
       if (!byMt.has(key)) byMt.set(key, []);
       byMt.get(key)!.push(row);
     });
-
     const lines: string[] = [
       "📋 *REPORT KELENGKAPAN ADMINISTRASI MT*",
       `📅 Periode: ${startDate ? formatDate(startDate) : "—"} s.d. ${endDate ? formatDate(endDate) : "—"}`,
       `📊 ${completeCount} sesi lengkap · ${incompleteCount} sesi belum lengkap`,
       "",
     ];
-
     if (!incompleteRows.length) {
       lines.push("🎉 *Semua sesi sudah lengkap!*", "Terima kasih, teman-teman MT Coach 🙌");
       return lines.join("\n");
     }
-
     lines.push("Mohon segera dilengkapi administrasinya ya. Berikut sesi yang masih belum lengkap:", "");
     let number = 1;
     Array.from(byMt.entries()).sort((a, b) => nameOf(mts, a[0]).localeCompare(nameOf(mts, b[0]))).forEach(([mtId, mtRows]) => {
@@ -159,6 +156,7 @@ export default function Monitoring() {
   ] as const;
 
   return <div className="page-wrap">
+    <style>{`.wa-report-btn{white-space:nowrap}.wa-modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.48);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:20px;z-index:1000}.wa-modal{width:min(760px,100%);max-height:90vh;overflow:auto;background:#fff;border:1px solid #e5e7eb;border-radius:20px;box-shadow:0 24px 70px rgba(15,23,42,.22);padding:22px}.wa-modal-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}.wa-modal-head h2{margin:5px 0 5px;font-size:20px}.wa-modal-head p{margin:0;color:#64748b;font-size:12px}.wa-close{width:34px;height:34px;border:0;border-radius:10px;background:#f1f5f9;color:#475569;font-size:24px;line-height:1;cursor:pointer}.wa-report-summary{display:flex;gap:8px;margin:18px 0 10px}.wa-report-text{width:100%;min-height:360px;resize:vertical;border:1px solid #d8dee8;border-radius:12px;background:#f8fafc;padding:14px;font:13px/1.55 Inter,Arial,sans-serif;color:#172033;outline:none}.wa-report-text:focus{border-color:#93c5fd;box-shadow:0 0 0 3px rgba(37,99,235,.08)}.wa-modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:12px}.wa-modal-note{color:#94a3b8;font-size:11px;text-align:right;margin-top:8px}@media(max-width:700px){.monitoring-summary{justify-content:flex-start}.wa-report-btn{width:100%}.wa-modal{padding:16px}.wa-modal-actions{flex-direction:column}.wa-modal-actions button{width:100%}}`}</style>
     <section className="planning-hero">
       <div className="planning-hero-row"><div><div className="eyebrow">MT COACH · OPERATIONS</div><h1>Monitoring</h1><p>Sesi yang sudah Finalize dari Weekly Planning muncul di sini untuk dilengkapi administrasinya.</p></div><span className="badge planning-status">🔒 {filtered.length} sesi Finalized</span></div>
     </section>
