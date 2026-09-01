@@ -92,12 +92,26 @@ export default function Monitoring() {
 
   const waReport = useMemo(() => {
     const byMt = new Map<string, MonitoringRow[]>();
-    reportIncompleteRows.forEach(row => { const key = row.mt_id || "unknown"; if (!byMt.has(key)) byMt.set(key, []); byMt.get(key)!.push(row); });
-    const lines: string[] = ["📋 *REPORT KELENGKAPAN ADMINISTRASI MT*", `📅 Tanggal: ${formatDate(waDate)}`, `📊 ${reportCompleteCount} sesi lengkap · ${reportIncompleteCount} sesi belum lengkap`, ""];
-    if (!reportIncompleteRows.length) { lines.push("🎉 *Semua sesi sudah lengkap!*", "Terima kasih, teman-teman MT Coach 🙌"); return lines.join("\n"); }
-    lines.push("Mohon segera dilengkapi administrasinya ya. Berikut sesi yang masih belum lengkap:", "");
+    reportIncompleteRows.forEach(row => {
+      const key = row.mt_id || "unknown";
+      if (!byMt.has(ney)) byMt.set(key, []);
+      byMt.get(key)!.push(row);
+    });
+    const branchLabel = branchId === "all" ? "Semua Cabang" : nameOf(branches, branchId);
+    const lines: string[] = [
+      "📋 *REPORT ADMINISTRASI MT*",
+      `📅 ${formatDate(waDate)}`,
+      `🏫 ${branchLabel}`,
+      `📊 *${reportCompleteCount} lengkap · ${reportIncompleteCount} belum lengkap*`,
+      "",
+    ];
+    if (!reportIncompleteRows.length) {
+      lines.push("🎉 *Semua sesi sudah lengkap!*", "🙏 Terima kasi, teman-teman MT.");
+      return lines.join("\n");
+    }
+    lines.push("❠ **Mohon segera lengkapi administrasi sesi berikut:**", "");
     let number = 1;
-    Array.from(byMt.entries()).sort((a, b) => nameOf(mts, a[0]).localeCompare(nameOf(mts, b[0]))).forEach(([mtId, mtRows]) => {
+    Array.from(byMt.entries()).sort((a, b) => nameOf(ts, a[0]).localeCompare(nameOf(mts, b[0]))).forEach(([mtId, mtRows]) => {
       lines.push(`*${nameOf(mts, mtId)}*`);
       mtRows.forEach(row => {
         const missing = isSimpleSession(row) ? (!row.attendance ? ["Attendance"] : []) : [
@@ -105,13 +119,16 @@ export default function Monitoring() {
           !row.activity_score && "Activity Score", !row.report_sessions && "Report Sessions", !row.foto_kbm && "Foto KBM",
           !row.report_wa && "Report WA", !row.auvi_tv_status && "AuVi TV", !row.ld_status && "LD",
         ].filter(Boolean) as string[];
-        lines.push(`${number++}. ${formatDate(row.planning_date)} · ${nameOf(branches, row.branch_id)}`, `   ${nameOf(rombels, row.rombel_id)} · ${nameOf(mapels, row.mapel_id)} · ${row.jenis_sesi}`, `   ❌ Belum: ${missing.join(", ")}`);
+        lines.push(
+          `${number++}. ${nameOf(rombels, row.rombel_id)} · ${nameOf(mapels, row.mapel_id)} · ${row.jenis_sesi}`,
+          `   ❌ ${missing.join(" · ")}`,
+          "",
+        );
       });
-      lines.push("");
     });
-    lines.push("Terima kasih 🙏");
+    lines.push("🏏 *Yuk, segera dilengkapi agar administrasi sesi tercatat lengkap.*");
     return lines.join("\n");
-  }, [reportIncompleteRows, waDate, reportCompleteCount, reportIncompleteCount, mts, branches, rombels, mapels]);
+  }, [reportIncompleteRows, waDate, reportCompleteCount, reportIncompleteCount, mts, branches, rombels, mapels, branchId]);
 
   async function copyWaReport() { try { await navigator.clipboard.writeText(waReport); setCopied(true); setTimeout(() => setCopied(false), 1800); } catch { setMessage("Tidak bisa menyalin otomatis. Silakan blok teks laporan lalu copy."); } }
   function openWhatsApp() { window.open(`https://wa.me/?text=${encodeURIComponent(waReport)}`, "_blank", "noopener,noreferrer"); }
