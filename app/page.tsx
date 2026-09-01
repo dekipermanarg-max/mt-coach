@@ -41,10 +41,24 @@ function formatDate(date: string) {
   return new Intl.DateTimeFormat("id-ID", { weekday: "short", day: "numeric", month: "short" }).format(new Date(`${date}T00:00:00`));
 }
 
+function normalizeBranchName(name: string) {
+  return name
+    .toLowerCase()
+    .replace(/[–—]/g, "-")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function getTargetBranchKey(branchName?: string | null) {
   if (!branchName) return null;
-  if (LD_TARGETS[branchName] !== undefined) return branchName;
-  return Object.keys(LD_TARGETS).find(key => branchName === key || branchName.endsWith(` - ${key}`)) || null;
+  const normalized = normalizeBranchName(branchName);
+
+  // Master branch names may contain the city/base prefix, e.g.
+  // "Padang - Gajah Mada" or "Bukittinggi - Jambu Air".
+  return Object.keys(LD_TARGETS).find(key => {
+    const target = normalizeBranchName(key);
+    return normalized === target || normalized.endsWith(` - ${target}`);
+  }) || null;
 }
 
 export default function Home() {
