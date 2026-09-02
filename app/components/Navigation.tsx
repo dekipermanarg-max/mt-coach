@@ -11,6 +11,7 @@ const items = [
   ["/monitoring", "Monitoring"],
   ["/performance", "Performance"],
   ["/data", "Data"],
+  ["/backup", "Backup"],
 ];
 
 export default function Navigation() {
