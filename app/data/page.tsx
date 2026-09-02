@@ -104,11 +104,47 @@ export default function DataPage() {
 
       {loading && <div className="card" style={{ marginTop: 16, padding: 14, fontSize: 12, color: "#64748b" }}>Memuat data shared database…</div>}
 
-      {showForm && <div className="modal-backdrop" onMouseDown={e => { if (e.target === e.currentTarget && !saving) setShowForm(false); }}>
-        <form className="modal" onSubmit={addItem}>
-          <div className="modal-head"><div><h2>Tambah {target === "mt" ? "MT" : target === "rombel" ? "Rombel" : "Mapel"}</h2><p>Data baru langsung tersedia di Weekly Planning.</p></div><button type="button" className="close-btn" disabled={saving} onClick={() => setShowForm(false)}>×</button></div>
-          <label>{target === "mt" ? "Nama MT" : target === "rombel" ? "Nama Rombel" : "Nama Mapel"}<input autoFocus value={name} onChange={e => setName(e.target.value)} placeholder={target === "mt" ? "Nama MT" : target === "rombel" ? "10 SMA R4.01" : "Matematika"} required /></label>
-          <div className="modal-actions"><button type="button" className="secondary-btn" disabled={saving} onClick={() => setShowForm(false)}>Batal</button><button type="submit" className="primary-btn" disabled={saving}>{saving ? "Menyimpan…" : "Simpan"}</button></div>
+      {showForm && <div
+        role="dialog"
+        aria-modal="true"
+        onMouseDown={e => { if (e.target === e.currentTarget && !saving) setShowForm(false); }}
+        style={{
+          position: "fixed", inset: 0, zIndex: 9999, padding: 20,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          background: "rgba(15,23,42,.52)", backdropFilter: "blur(4px)",
+        }}
+      >
+        <form
+          onSubmit={addItem}
+          style={{
+            width: "min(480px, 100%)", margin: "0 auto", background: "#fff",
+            border: "1px solid #e2e8f0", borderRadius: 18,
+            boxShadow: "0 28px 80px rgba(15,23,42,.28)", overflow: "hidden",
+          }}
+        >
+          <div style={{ padding: "20px 22px", borderBottom: "1px solid #eef2f7", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".12em", textTransform: "uppercase", color: "#2563eb", marginBottom: 5 }}>MASTER DATA</div>
+              <h2 style={{ margin: 0, fontSize: 21, lineHeight: 1.2, color: "#14213d" }}>Tambah {target === "mt" ? "MT" : target === "rombel" ? "Rombel" : "Mapel"}</h2>
+              <p style={{ margin: "6px 0 0", color: "#64748b", fontSize: 12 }}>Data baru langsung tersedia di Weekly Planning.</p>
+            </div>
+            <button type="button" aria-label="Tutup" disabled={saving} onClick={() => setShowForm(false)} style={{ flex: "0 0 auto", width: 34, height: 34, border: "1px solid #e2e8f0", borderRadius: 10, background: "#f8fafc", color: "#475569", fontSize: 20, lineHeight: 1, cursor: "pointer" }}>×</button>
+          </div>
+          <div style={{ padding: "20px 22px 22px" }}>
+            <label style={{ display: "block", color: "#334155", fontSize: 12, fontWeight: 800, marginBottom: 8 }}>{target === "mt" ? "Nama MT" : target === "rombel" ? "Nama Rombel" : "Nama Mapel"}</label>
+            <input
+              autoFocus
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder={target === "mt" ? "Contoh: Nama MT" : target === "rombel" ? "Contoh: 10 SMA R4.02" : "Contoh: Bahasa Indonesia"}
+              required
+              style={{ width: "100%", boxSizing: "border-box", border: "1px solid #cbd5e1", borderRadius: 11, padding: "12px 13px", background: "#fff", color: "#0f172a", fontSize: 14, outline: "none" }}
+            />
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 9, marginTop: 18 }}>
+              <button type="button" className="secondary-btn" disabled={saving} onClick={() => setShowForm(false)}>Batal</button>
+              <button type="submit" className="primary-btn" disabled={saving || !name.trim()}>{saving ? "Menyimpan…" : "Simpan"}</button>
+            </div>
+          </div>
         </form>
       </div>}
     </div>
