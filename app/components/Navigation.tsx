@@ -14,6 +14,15 @@ const items = [
   ["/backup", "Backup"],
 ];
 
+const icons: Record<string, string> = {
+  Dashboard: "⌂",
+  "Weekly Planning": "▦",
+  Monitoring: "◉",
+  Performance: "↗",
+  Data: "▤",
+  Backup: "↻",
+};
+
 export default function Navigation() {
   const pathname = usePathname();
   return (
@@ -27,7 +36,8 @@ export default function Navigation() {
             const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
             return (
               <Link key={href} href={href} className={`app-nav-link${active ? " active" : ""}`}>
-                {label}
+                <span className="app-nav-icon" aria-hidden="true">{icons[label]}</span>
+                <span>{label}</span>
               </Link>
             );
           })}
