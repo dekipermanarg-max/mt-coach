@@ -18,12 +18,8 @@ const LD_ELIGIBLE_ROMBEL: Record<string, number> = {
 function formatDate(value: string) { return value ? new Date(`${value}T00:00:00`).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : ""; }
 function defaultStart() { const d = new Date(); d.setDate(d.getDate() - 6); return d.toISOString().slice(0, 10); }
 function adminCount(s: Session) { let count = 0; if (s.topik_sub_topik_done) count++; if (s.attendance) count++; if (s.starchamps) count++; if (s.activity_score) count++; if (s.report_sessions) count++; if (s.foto_kbm) count++; if (s.report_wa) count++; if (s.auvi_tv_status) count++; if (s.ld_status) count++; return count; }
-function getBranchTargetKey(name: string) {
-  const normalized = name.toLowerCase().replace(/[–—]/g, "-").replace(/\s+/g, " ").trim();
-  return Object.keys(LD_ELIGIBLE_ROMBEL).find(key => normalized === key.toLowerCase()) || null;
-}
+function getBranchTargetKey(name: string) { const normalized = name.toLowerCase().replace(/[–—]/g, "-").replace(/\s+/g, " ").trim(); return Object.keys(LD_ELIGIBLE_ROMBEL).find(key => normalized === key.toLowerCase()) || null; }
 function weeksInRange(start: string, end: string) { const a = new Date(`${start}T00:00:00`); const b = new Date(`${end}T00:00:00`); const days = Math.max(1, Math.floor((b.getTime() - a.getTime()) / 86400000) + 1); return Math.max(1, Math.ceil(days / 7)); }
-
 type ExportRow = { name: string; base: string; planned: number; realized: number; session: number; admin: number; ld: number | null };
 
 export default function Performance() {
@@ -56,21 +52,16 @@ export default function Performance() {
       let scriptUrl = window.localStorage.getItem("MT_COACH_SLIDES_EXPORT_URL") || "";
       scriptUrl = window.prompt("Masukkan URL Web App Google Apps Script untuk export Google Slides:", scriptUrl) || "";
       if (!scriptUrl) { setExporting(false); return; }
-      window.localStorage.setItem("MT_COACH_SLIDES_EXPORT_URL", scriptUrl.trim());
+      scriptUrl = scriptUrl.trim();
       const report = {
-        title: "MT Performance",
-        startDate, endDate, branch,
-        avgSession, top: top || null, attention: attentionRows,
-        plannedTotal, realizedTotal,
-        auvi: { realized: auviRealized, target: auviTarget, pct: auviPct },
-        ld: { realized: ldRombels.size, target: ldTarget, eligible: ldEligible },
-        rows
+        title: "MT Performance", startDate, endDate, branch, avgSession, top: top || null, attention: attentionRows,
+        plannedTotal, realizedTotal, auvi: { realized: auviRealized, target: auviTarget, pct: auviPct },
+        ld: { realized: ldRombels.size, target: ldTarget, eligible: ldEligible }, rows
       };
-      const response = await fetch("/api/export-performance", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ scriptUrl: scriptUrl.trim(), report }) });
-      const result = await response.json();
-      if (!response.ok || !result.success) throw new Error(result.error || "Gagal membuat Google Slides.");
-      setExportMessage(`✓ Google Slides berhasil dibuat. ${result.url ? "Membuka presentasi…" : ""}`);
-      if (result.url) window.open(result.url, "_blank", "noopener,noreferrer");
+      window.localStorage.setItem("MT_COACH_SLIDES_EXPORT_URL", scriptUrl);
+      const exportUrl = `${scriptUrl}${scriptUrl.includes("?") ? "&" : "?"}action=export_performance_slides&payload=${encodeURIComponent(JSON.stringify(report))}`;
+      setExportMessage("✓ Menyiapkan Google Slides…");
+      window.open(exportUrl, "_blank", "noopener,noreferrer");
     } catch (e) {
       setExportMessage(`Export gagal: ${e instanceof Error ? e.message : "Unknown error"}`);
     } finally { setExporting(false); }
@@ -83,7 +74,7 @@ export default function Performance() {
     {error && <div className="card error-note">Gagal memuat data: {error}</div>}{loading && <div className="card loading-note">Memuat data Performance dari shared database…</div>}
     <section className="performance-grid"><div className="card performance-kpi"><div className="kpi-label">Average Session</div><div className="kpi-value">{avgSession}%</div><div className="kpi-note">{rows.length} MT dengan sesi Finalized</div></div><div className="card performance-kpi"><div className="kpi-label">Top MT</div><div className="kpi-value">{top ? `${top.session}%` : "—"}</div><div className="kpi-note">{top?.name || "Belum ada data"}</div></div><div className="card performance-kpi"><div className="kpi-label">Needs Attention</div><div className="kpi-value">{attention}</div><div className="kpi-note">Session atau Admin &lt; 90%</div></div><div className="card performance-kpi"><div className="kpi-label">Total Finalized</div><div className="kpi-value">{plannedTotal}</div><div className="kpi-note">{realizedTotal} sesi sudah Attendance</div></div></section>
     <section className="section target-section"><div className="section-head"><div><h2>🎯 Weekly Target</h2><p className="section-note">Target operasional berdasarkan cabang sesi dan periode yang dipilih.</p></div></div><div className="target-grid"><div className="card target-card"><div className="kpi-label">AuVi TV</div><div className="target-main"><strong>{auviRealized}</strong><span>/ {auviTarget} sesi</span></div><div className="target-progress"><div style={{width:`${Math.min(100,auviPct)}%`}} /></div><div className="kpi-note">Target <strong>10 sesi/cabang/minggu</strong> · {auviPct}% tercapai</div></div><div className="card target-card"><div className="kpi-label">LD</div><div className="target-main"><strong>{ldRombels.size}</strong><span>/ {ldTarget} rombel</span></div><div className="target-progress"><div style={{width:`${Math.min(100,ldTarget ? Math.round(ldRombels.size/ldTarget*100):0)}%`}} /></div><div className="kpi-note">Target 50% rombel eligible/minggu · eligible: {ldEligible} rombel</div></div></div></section>
-    <section className="section"><div className="section-head"><div><h2>🏆 Ranking MT</h2><p className="section-note">Ranking berdasarkan MT. <strong>Base</strong> adalah cabang utama MT, sedangkan filter Cabang Sesi berdasarkan lokasi sesi mengajar.</p></div><button className="secondary-btn" type="button" onClick={handleExport} disabled={exporting}>{exporting ? "⏳ Membuat Slides..." : "⬇️ Export ke Google Slides"}</button></div>{exportMessage && <div className="card export-note">{exportMessage}</div>}<div className="table-wrap"><table><thead><tr><th>#</th><th>MT</th><th>Base</th><th>Finalized</th><th>Attendance</th><th>Session</th><th>Admin</th><th>LD</th><th>Status</th></tr></thead><tbody>{rows.map((r,i)=><tr key={r.name}><td>{i<3?["🥇","🥈","🥉"][i]:i+1}</td><td><strong>{r.name}</strong></td><td>{r.base}</td><td>{r.planned}</td><td>{r.realized}</td><td className="score">{r.session}%</td><td>{r.admin}%</td><td>{r.ld===null?"—":`${r.ld}%`}</td><td><span className={`badge ${status(r)==="Excellent"?"green":status(r)==="Good"?"blue":status(r)==="Critical"?"red":"yellow"}`}>{status(r)}</span></td></tr>)}{rows.length===0&&!loading&&<tr><td colSpan={9}><div className="empty-state">Belum ada sesi Finalized untuk rentang tanggal dan cabang sesi ini.</div></td></tr>}</tbody></table></div></section>
+    <section className="section"><div className="section-head"><div><h2>🏆 Ranking MT</h2><p className="section-note">Ranking berdasarkan MT. <strong>Base</strong> adalah cabang utama MT, sedangkan filter Cabang Sesi berdasarkan lokasi sesi mengajar.</p></div><button className="secondary-btn" type="button" onClick={handleExport} disabled={exporting}>{exporting ? "⏳ Menyiapkan..." : "⬇️ Export ke Google Slides"}</button></div>{exportMessage && <div className="card export-note">{exportMessage}</div>}<div className="table-wrap"><table><thead><tr><th>#</th><th>MT</th><th>Base</th><th>Finalized</th><th>Attendance</th><th>Session</th><th>Admin</th><th>LD</th><th>Status</th></tr></thead><tbody>{rows.map((r,i)=><tr key={r.name}><td>{i<3?["🥇","🥈","🥉"][i]:i+1}</td><td><strong>{r.name}</strong></td><td>{r.base}</td><td>{r.planned}</td><td>{r.realized}</td><td className="score">{r.session}%</td><td>{r.admin}%</td><td>{r.ld===null?"—":`${r.ld}%`}</td><td><span className={`badge ${status(r)==="Excellent"?"green":status(r)==="Good"?"blue":status(r)==="Critical"?"red":"yellow"}`}>{status(r)}</span></td></tr>)}{rows.length===0&&!loading&&<tr><td colSpan={9}><div className="empty-state">Belum ada sesi Finalized untuk rentang tanggal dan cabang sesi ini.</div></td></tr>}</tbody></table></div></section>
     <section className="section"><div className="section-head"><h2>⚠️ Needs Attention</h2></div><div className="attention">{attentionRows.map(r=><div className="alert" key={r.name}><div><strong>{r.name} · Session {r.session}% · Admin {r.admin}%</strong><small>{r.base} · Session atau administrasi di bawah 90%</small></div><span className={`badge ${status(r)==="Critical"?"red":"yellow"}`}>{status(r)}</span></div>)}{attention===0&&<div className="alert"><div><strong>✅ All good</strong><small>Tidak ada MT yang perlu diperhatikan berdasarkan filter saat ini.</small></div></div>}</div></section>
     <section className="section status-legend"><div className="section-head"><div><h2>📊 Legenda Status</h2><p className="section-note">Status otomatis berdasarkan skor Performance.</p></div></div><div className="status-legend-grid"><div className="status-legend-item excellent"><b>🟢 Excellent</b><span>≥ 90% · Performa sangat baik</span></div><div className="status-legend-item good"><b>🔵 Good</b><span>75–89% · Baik, masih bisa ditingkatkan</span></div><div className="status-legend-item attention"><b>🟡 Attention</b><span>50–74% · Perlu diperhatikan</span></div><div className="status-legend-item critical"><b>🔴 Critical</b><span>&lt; 50% · Perlu coaching/intervensi</span></div><div className="status-legend-item nodata"><b>⚪ No Data</b><span>Tidak ada sesi pada periode terpilih</span></div></div></section>
     <section className="section"><div className="section-head"><h2>📐 Cara Hitung</h2></div><div className="card formula-card"><div><strong>Session = Attendance ÷ Finalized × 100</strong><div className="kpi-note">Admin = rata-rata 9 item administrasi dari Monitoring. LD = sesi LD yang sudah report CMS ÷ seluruh sesi LD.</div></div><div className="kpi-note">Sumber: shared database Supabase</div></div></section>
