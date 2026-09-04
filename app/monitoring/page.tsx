@@ -37,6 +37,8 @@ export default function Monitoring() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [showWaReport, setShowWaReport] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportMessage, setExportMessage] = useState("");
   const [waDate, setWaDate] = useState(() => new Date().toISOString().slice(0, 10));
 
   async function load() {
@@ -132,6 +134,52 @@ export default function Monitoring() {
 
   async function copyWaReport() { try { await navigator.clipboard.writeText(waReport); setCopied(true); setTimeout(() => setCopied(false), 1800); } catch { setMessage("Tidak bisa menyalin otomatis. Silakan blok teks laporan lalu copy."); } }
   function openWhatsApp() { window.open(`https://wa.me/?text=${encodeURIComponent(waReport)}`, "_blank", "noopener,noreferrer"); }
+
+  async function handleExport() {
+    setExporting(true); setExportMessage("");
+    try {
+      let scriptUrl = window.localStorage.getItem("MT_COACH_SHEET_EXPORT_URL") || window.localStorage.getItem("MT_COACH_SLIDES_EXPORT_URL") || "";
+      scriptUrl = window.prompt("Masukkan URL Web App Google Apps Script untuk export Google Sheets:", scriptUrl) || "";
+      if (!scriptUrl) { setExporting(false); return; }
+      scriptUrl = scriptUrl.trim();
+      const exportRows = filtered.map(row => ({
+        tanggal: row.planning_date,
+        cabang: nameOf(branches, row.branch_id),
+        mt: nameOf(mts, row.mt_id),
+        rombel: nameOf(rombels, row.rombel_id),
+        mapel: nameOf(mapels, row.mapel_id),
+        jenisSesi: row.jenis_sesi,
+        topikSubtopik: row.topik_sub_topik || "",
+        topikSubtopikDone: Boolean(row.topik_sub_topik_done),
+        attendance: Boolean(row.attendance),
+        starchamps: Boolean(row.starchamps),
+        activityScore: Boolean(row.activity_score),
+        reportSessions: Boolean(row.report_sessions),
+        fotoKbm: Boolean(row.foto_kbm),
+        reportWa: Boolean(row.report_wa),
+        auviTvStatus: row.auvi_tv_status || "",
+        ldStatus: row.ld_status || "",
+        adminPercent: adminPercent(row),
+        status: adminDone(row) === adminTotal(row) ? "Lengkap" : "Belum lengkap",
+      }));
+      const report = {
+        title: "Kelengkapan Administrasi Monitoring",
+        startDate, endDate,
+        branch: branchId === "all" ? "Semua Cabang" : nameOf(branches, branchId),
+        mt: selectedMT === "all" ? "Semua MT" : nameOf(mts, selectedMT),
+        search: search || "",
+        summary: { total: filtered.length, complete: completeCount, incomplete: incompleteCount, avgAdmin },
+        rows: exportRows,
+      };
+      window.localStorage.setItem("MT_COACH_SHEET_EXPORT_URL", scriptUrl);
+      const exportUrl = `${scriptUrl}${scriptUrl.includes("?") ? "&" : "?"}action=export_monitoring_sheet&payload=${encodeURIComponent(JSON.stringify(report))}`;
+      setExportMessage("✓ Menyiapkan Google Sheets…");
+      window.open(exportUrl, "_blank", "noopener,noreferrer");
+    } catch (e) {
+      setExportMessage(`Export gagal: ${e instanceof Error ? e.message : "Unknown error"}`);
+    } finally { setExporting(false); }
+  }
+
   async function saveRow(row: MonitoringRow, patch: Partial<MonitoringRow>) {
     setSaving(row.id); setMessage("");
     const { error } = await supabase.from("weekly_planning").update(patch as never).eq("id", row.id).eq("status", "Finalized");
@@ -158,8 +206,9 @@ export default function Monitoring() {
     </section>
     <div className="grid planning-kpis"><div className="card planning-kpi"><div className="kpi-label">Finalized Session</div><div className="kpi-value">{filtered.length}</div><div className="kpi-note">Sesi siap dimonitor</div></div><div className="card planning-kpi"><div className="kpi-label">Admin Completion</div><div className="kpi-value">{avgAdmin}%</div><div className="kpi-note">Mengikuti aturan jenis sesi</div></div><div className="card planning-kpi"><div className="kpi-label">Lengkap</div><div className="kpi-value">{completeCount}</div><div className="kpi-note">Sesuai administrasi wajib</div></div></div>
     {message && <div className="card" style={{ marginBottom: 16, padding: 14 }}>{message}</div>}
+    {exportMessage && <div className="card" style={{ marginBottom: 16, padding: 14, borderLeft: "4px solid #22c55e" }}>{exportMessage}</div>}
     <section className="card monitoring-card-list">
-      <div className="planning-table-head monitoring-list-head"><div><h2>📊 Kelengkapan Administrasi</h2><p>KBM wajib lengkap. Klinik PR dan Trial Class cukup Attendance.</p></div><div className="monitoring-summary"><span className="badge green">✅ {completeCount} Lengkap</span><span className="badge yellow">🟡 {incompleteCount} Belum lengkap</span><button type="button" className="primary-btn wa-report-btn" onClick={() => { setCopied(false); setShowWaReport(true); }}>📲 Generate Report WA Hari Ini</button></div></div>
+      <div className="planning-table-head monitoring-list-head"><div><h2>📊 Kelengkapan Administrasi</h2><p>KBM wajib lengkap. Klinik PR dan Trial Class cukup Attendance.</p></div><div className="monitoring-summary"><span className="badge green">✅ {completeCount} Lengkap</span><span className="badge yellow">🟡 {incompleteCount} Belum lengkap</span><button type="button" className="secondary-btn" onClick={handleExport} disabled={exporting}>{exporting ? "⏳ Menyiapkan..." : "⬇️ Export ke Google Sheets"}</button><button type="button" className="primary-btn wa-report-btn" onClick={() => { setCopied(false); setShowWaReport(true); }}>📲 Generate Report WA Hari Ini</button></div></div>
       <div className="monitoring-cards">
         {loading ? <div className="empty-state"><strong>Memuat data…</strong></div> : filtered.length === 0 ? <div className="empty-state"><div className="empty-icon">📋</div><strong>Belum ada sesi Finalized</strong><p>Sesuaikan tanggal atau filter untuk melihat sesi.</p></div> : filtered.map(row => {
           const done = adminDone(row); const total = adminTotal(row); const complete = done === total; const open = openId === row.id; const simple = isSimpleSession(row);
