@@ -1,5 +1,6 @@
 name: Deploy to GitHub Pages
 
+# Force a fresh Pages deployment so the latest UI changes are published.
 on:
   push:
     branches: [main]
