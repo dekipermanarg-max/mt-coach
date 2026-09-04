@@ -5,8 +5,8 @@ import { usePathname } from "next/navigation";
 
 const BAC_LOGO = "https://images.glints.com/unsafe/glints-dashboard.oss-ap-southeast-1.aliyuncs.com/company-logo/110cf8ca0a782e8ef809a55ed13ae80b.jpg";
 
-const items = [["/", "Dashboard"], ["/planning", "Weekly Planning"], ["/sessions", "Session Admin"], ["/monitoring", "Monitoring"], ["/performance", "Performance"], ["/data", "Data"], ["/backup", "Backup"]];
-const icons: Record<string, string> = { Dashboard: "⌂", "Weekly Planning": "▦", "Session Admin": "✓", Monitoring: "◉", Performance: "↗", Data: "▤", Backup: "↻" };
+const items = [["/", "Dashboard"], ["/planning", "Weekly Planning"], ["/sessions", "Mathchamps"], ["/monitoring", "Monitoring"], ["/performance", "Performance"], ["/data", "Data"], ["/backup", "Backup"]];
+const icons: Record<string, string> = { Dashboard: "⌂", "Weekly Planning": "▦", Mathchamps: "✓", Monitoring: "◉", Performance: "↗", Data: "▤", Backup: "↻" };
 
 export default function Navigation() {
   const pathname = usePathname();
