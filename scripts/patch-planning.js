@@ -26,5 +26,11 @@ for (const [from, to] of replacements) {
   s = s.replace(from, to);
 }
 
+// Load MT and rombel only for the selected branch. Mapel remains global.
+const oldLoadMasters = `  async function loadMasters() {\n    const [b, mtRes, rRes, mRes] = await Promise.all([\n      supabase.from("branches").select("id,name").eq("name", branch).single(),\n      supabase.from("master_mt").select("id,name").eq("active", true).order("name"),\n      supabase.from("master_rombel").select("id,name").eq("active", true).order("name"),\n      supabase.from("master_mapel").select("id,name").eq("active", true).order("name"),\n    ]);\n    if (b.data) setBranchId(b.data.id);\n    setMtRows(mtRes.data || []);\n    setRombelRows(rRes.data || []);\n    setMapelRows(mRes.data || []);\n    setMt("");\n    setRombel("");\n    setMapel("");\n    if (b.error || mtRes.error || rRes.error || mRes.error) {\n      setMessage("Gagal memuat master data dari database.");\n    }\n  }`;
+const newLoadMasters = `  async function loadMasters() {\n    setMtRows([]);\n    setRombelRows([]);\n    setMapelRows([]);\n    setMt("");\n    setRombel("");\n    setMapel("");\n    setBranchId("");\n    if (!branch) return;\n\n    const b = await supabase.from("branches").select("id,name").eq("name", branch).single();\n    if (!b.data) {\n      setMessage("Cabang tidak ditemukan di database.");\n      return;\n    }\n    const id = b.data.id as string;\n    setBranchId(id);\n\n    const [mtRes, rRes, mRes] = await Promise.all([\n      supabase.from("master_mt").select("id,name").eq("branch_id", id).eq("active", true).order("name"),\n      supabase.from("master_rombel").select("id,name").eq("branch_id", id).eq("active", true).order("name"),\n      supabase.from("master_mapel").select("id,name").eq("active", true).order("name"),\n    ]);\n    setMtRows(mtRes.data || []);\n    setRombelRows(rRes.data || []);\n    setMapelRows(mRes.data || []);\n    if (mtRes.error || rRes.error || mRes.error) {\n      setMessage("Gagal memuat master data dari database.");\n    }\n  }`;
+if (!s.includes(oldLoadMasters)) throw new Error('loadMasters marker not found');
+s = s.replace(oldLoadMasters, newLoadMasters);
+
 fs.writeFileSync(file, s);
-console.log("Patched planning defaults to blank:", file);
+console.log("Patched Weekly Planning defaults and branch-scoped dropdowns:", file);
