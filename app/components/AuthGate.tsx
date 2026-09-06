@@ -9,15 +9,22 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { loading, user, profile } = useAuth();
   const isLogin = pathname === "/login" || pathname === "/login/";
+  const isMathchamps = pathname === "/sessions" || pathname.startsWith("/sessions/");
 
   useEffect(() => {
     if (loading) return;
     if (isLogin) {
-      if (user && profile) router.replace("/");
+      if (user && profile) router.replace(profile.module_scope === "MATHCHAMPS_ONLY" ? "/sessions" : "/");
       return;
     }
-    if (!user || !profile) router.replace("/login");
-  }, [loading, user, profile, isLogin, router]);
+    if (!user || !profile) {
+      router.replace("/login");
+      return;
+    }
+    if (profile.module_scope === "MATHCHAMPS_ONLY" && !isMathchamps) {
+      router.replace("/sessions");
+    }
+  }, [loading, user, profile, isLogin, isMathchamps, router]);
 
   if (isLogin) return <>{children}</>;
   if (loading || !user || !profile) {
@@ -30,6 +37,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
+  if (profile.module_scope === "MATHCHAMPS_ONLY" && !isMathchamps) return null;
 
   return <>{children}</>;
 }
