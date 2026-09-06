@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabase";
 
 export type AppRole = "SUPERADMIN" | "ATASAN" | "MTC" | "ADMIN";
+export type ModuleScope = "ALL" | "MATHCHAMPS_ONLY";
 
 type AppProfile = {
   id: string;
@@ -11,6 +12,7 @@ type AppProfile = {
   username: string;
   display_name: string;
   role: AppRole;
+  module_scope: ModuleScope;
   active: boolean;
 };
 
@@ -22,6 +24,9 @@ type AuthContextValue = {
   profile: AppProfile | null;
   branches: Branch[];
   isAuthenticated: boolean;
+  canWrite: boolean;
+  canManageAccess: boolean;
+  canAccessModule: (module: "CORE" | "MATHCHAMPS") => boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 };
@@ -48,7 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser({ id: authUser.id, email: authUser.email || undefined });
     const { data: p, error } = await supabase
       .from("app_users")
-      .select("id,auth_user_id,username,display_name,role,active")
+      .select("id,auth_user_id,username,display_name,role,module_scope,active")
       .eq("auth_user_id", authUser.id)
       .eq("active", true)
       .single();
@@ -63,7 +68,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const appProfile = p as AppProfile;
     setProfile(appProfile);
 
-    if (appProfile.role === "SUPERADMIN" || appProfile.role === "ATASAN") {
+    if (appProfile.module_scope === "MATHCHAMPS_ONLY") {
+      const { data } = await supabase.from("branches").select("id,name").eq("active", true).order("name");
+      setBranches((data || []) as Branch[]);
+    } else if (appProfile.role === "SUPERADMIN" || appProfile.role === "ATASAN") {
       const { data } = await supabase.from("branches").select("id,name").eq("active", true).order("name");
       setBranches((data || []) as Branch[]);
     } else {
@@ -81,9 +89,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let mounted = true;
     void loadProfile();
 
-    const { data } = supabase.auth.onAuthStateChange(async () => {
+    const { data } = supabase.auth.onAuthStateChange(() => {
       if (!mounted) return;
-      await loadProfile();
+      setTimeout(() => {
+        if (mounted) void loadProfile();
+      }, 0);
     });
 
     return () => {
@@ -98,6 +108,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     profile,
     branches,
     isAuthenticated: Boolean(user && profile),
+    canWrite: Boolean(profile && ["SUPERADMIN", "ATASAN", "MTC"].includes(profile.role) && profile.module_scope === "ALL"),
+    canManageAccess: Boolean(profile && profile.role === "SUPERADMIN"),
+    canAccessModule: (module) => Boolean(profile && (profile.module_scope === "ALL" || (profile.module_scope === "MATHCHAMPS_ONLY" && module === "MATHCHAMPS"))),
     signOut: async () => {
       await supabase.auth.signOut();
     },
