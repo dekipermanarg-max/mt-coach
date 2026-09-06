@@ -19,9 +19,9 @@ const BRANCH_ROMBEL_COUNTS = {
   "Bukittinggi - Jambu Air": 6,
 };
 
-// Inject the branch population map into the compiled React page (not only this patch script).
-const appCountsBlock = `const BRANCH_ROMBEL_COUNTS = ${JSON.stringify(BRANCH_ROMBEL_COUNTS, null, 2)};\n`;
-if (!s.includes("const BRANCH_ROMBEL_COUNTS =")) {
+// Inject the branch population map into the compiled React page.
+const appCountsBlock = `const BRANCH_ROMBEL_COUNTS: Record<string, number> = ${JSON.stringify(BRANCH_ROMBEL_COUNTS, null, 2)};\n`;
+if (!s.includes("const BRANCH_ROMBEL_COUNTS")) {
   const appNeedle = 'const BRANCHES = [';
   if (!s.includes(appNeedle)) throw new Error("BRANCHES marker not found");
   s = s.replace(appNeedle, appCountsBlock + appNeedle);
