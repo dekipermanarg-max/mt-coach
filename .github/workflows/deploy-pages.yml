@@ -28,6 +28,8 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm install
+      - name: Patch Monitoring UI
+        run: node scripts/patch-monitoring.js
       - name: Build static site
         run: npm run build
       - name: Setup Pages
