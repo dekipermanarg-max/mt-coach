@@ -88,7 +88,7 @@ if (!s.includes('async function generateReportImage')) {
   s = s.replace(fnNeedle, fnAdd + fnNeedle);
 }
 
-const buttonNeedle = '<button type="button" className="primary-btn" onClick={copyWaReport}';
+const buttonNeedle = '<button type="button" className="primary-btn wa-report-btn" onClick={copyWaReport}';
 const buttonAdd = '<button type="button" className="secondary-btn" onClick={generateReportImage} disabled={generatingReportImage}>{generatingReportImage ? "⏳ Membuat gambar..." : "🖼️ Buat Screenshot"}</button>';
 if (!s.includes('onClick={generateReportImage}')) {
   if (!s.includes(buttonNeedle)) throw new Error('copy WA button marker not found');
