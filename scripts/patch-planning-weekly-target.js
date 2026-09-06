@@ -69,9 +69,10 @@ const effectAdd = `  useEffect(() => {
       const configuredPopulation = BRANCH_ROMBEL_COUNTS[branch] || 0;
       const planningRombels = new Set(planningRows.map(x => x.rombel_id).filter(Boolean));
       const population = configuredPopulation || planningRombels.size;
-      const auviSessions = planningRows.filter(x => x.auvi_tv && x.status !== "Draft").length;
+      // Draft assignments are part of the live Weekly Planning KPI and must update immediately.
+      const auviSessions = planningRows.filter(x => x.auvi_tv).length;
       const ldRombels = new Set(
-        planningRows.filter(x => x.ld && x.rombel_id && x.status !== "Draft").map(x => x.rombel_id)
+        planningRows.filter(x => x.ld && x.rombel_id).map(x => x.rombel_id)
       ).size;
 
       setWeeklyAuviSessions(auviSessions);
@@ -80,12 +81,16 @@ const effectAdd = `  useEffect(() => {
     }
     loadWeeklyTargets();
     return () => { cancelled = true; };
-  }, [branchId, branch, date]);
+  }, [branchId, branch, date, sessions]);
 
 `;
 if (!s.includes('loadWeeklyTargets')) {
   if (!s.includes(effectNeedle)) throw new Error('weekly KPI effect marker not found');
   s = s.replace(effectNeedle, effectAdd + effectNeedle);
+} else {
+  s = s.replace('}, [branchId, branch, date]);', '}, [branchId, branch, date, sessions]);');
+  s = s.replace('planningRows.filter(x => x.auvi_tv && x.status !== "Draft")', 'planningRows.filter(x => x.auvi_tv)');
+  s = s.replace('planningRows.filter(x => x.ld && x.rombel_id && x.status !== "Draft")', 'planningRows.filter(x => x.ld && x.rombel_id)');
 }
 
 // Replace the KPI cards by their visible labels, so the patch survives harmless source formatting changes.
@@ -106,4 +111,4 @@ if (s.includes('>LD</div>') || s.includes('>LD Mingguan</div>')) {
 }
 
 fs.writeFileSync(file, s);
-console.log("Patched Weekly Planning official AuVi/LD targets by branch:", file);
+console.log("Patched Weekly Planning live AuVi/LD targets by branch:", file);
