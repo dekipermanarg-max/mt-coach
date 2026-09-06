@@ -5,8 +5,8 @@ import AuthGate from "./components/AuthGate";
 import NavigationSecure from "./components/NavigationSecure";
 
 export const metadata: Metadata = {
-  title: "MT Coach",
-  description: "Monitoring, Planning, dan Performance Management",
+  title: "Dashboard Administrasi MT Regional Sumbar",
+  description: "Dashboard Administrasi MT Regional Sumbar",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
