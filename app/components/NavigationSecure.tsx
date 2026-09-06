@@ -17,8 +17,8 @@ export default function NavigationSecure() {
   const visibleItems = profile.module_scope === "MATHCHAMPS_ONLY" ? items.filter(([href]) => href === "/sessions") : items;
 
   return <>
-    <nav className="app-nav" aria-label="Menu utama"><div className="app-nav-inner">
-      <Link href={profile.module_scope === "MATHCHAMPS_ONLY" ? "/sessions" : "/"} className="app-brand" aria-label="Brain Academy MT Coach"><img src={BAC_LOGO} alt="Brain Academy by Ruangguru" /></Link>
+    <nav className="app-nav" aria-label="Dashboard Administrasi MT Regional Sumbar"><div className="app-nav-inner">
+      <Link href={profile.module_scope === "MATHCHAMPS_ONLY" ? "/sessions" : "/"} className="app-brand" aria-label="Dashboard Administrasi MT Regional Sumbar"><img src={BAC_LOGO} alt="Brain Academy by Ruangguru" /></Link>
       <div className="app-nav-links">{visibleItems.map(([href,label]) => { const active=href==="/"?pathname==="/":pathname.startsWith(href); return <Link key={href} href={href} className={`app-nav-link${active?" active":""}`}><span className="app-nav-icon" aria-hidden="true">{icons[label]}</span><span>{label}</span></Link>; })}</div>
       <div className="app-user-box"><div className="app-user-copy"><strong>{profile.display_name}</strong><span>{profile.role}{profile.module_scope === "MATHCHAMPS_ONLY" ? " · MATHCHAMPS" : ""}</span></div><button type="button" className="app-logout" onClick={() => void signOut()}>Keluar</button></div>
     </div></nav>
