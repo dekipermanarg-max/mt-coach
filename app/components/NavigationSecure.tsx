@@ -10,13 +10,11 @@ const icons: Record<string, string> = { Dashboard: "âŒ‚", "Weekly Planning": "â–
 
 export default function NavigationSecure() {
   const pathname = usePathname();
-  const { loading, profile, signOut, canAccessModule } = useAuth();
+  const { loading, profile, signOut } = useAuth();
   if (pathname === "/login" || pathname === "/login/") return null;
   if (loading || !profile) return null;
 
-  const visibleItems = profile.module_scope === "MATHCHAMPS_ONLY"
-    ? items.filter(([href]) => href === "/sessions")
-    : items;
+  const visibleItems = profile.module_scope === "MATHCHAMPS_ONLY" ? items.filter(([href]) => href === "/sessions") : items;
 
   return <>
     <nav className="app-nav" aria-label="Menu utama"><div className="app-nav-inner">
