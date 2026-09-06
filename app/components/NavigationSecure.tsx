@@ -5,8 +5,8 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "./AuthProvider";
 
 const BAC_LOGO = "https://images.glints.com/unsafe/glints-dashboard.oss-ap-southeast-1.aliyuncs.com/company-logo/110cf8ca0a782e8ef809a55ed13ae80b.jpg";
-const items = [["/", "Dashboard"], ["/planning", "Weekly Planning"], ["/monitoring", "Monitoring"], ["/performance", "Performance"], ["/sessions", "Mathchamps"], ["/data", "Data"], ["/backup", "Backup"]] as const;
-const icons: Record<string, string> = { Dashboard: "⌂", "Weekly Planning": "▦", Mathchamps: "✓", Monitoring: "◉", Performance: "↗", Data: "▤", Backup: "↻" };
+const items = [["/", "Dashboard"], ["/planning", "Weekly Planning"], ["/monitoring", "Monitoring"], ["/performance", "Performance"], ["/activity-log", "Activity Log"], ["/sessions", "Mathchamps"], ["/data", "Data"], ["/backup", "Backup"]] as const;
+const icons: Record<string, string> = { Dashboard: "⌂", "Weekly Planning": "▦", Mathchamps: "✓", Monitoring: "◉", Performance: "↗", "Activity Log": "◷", Data: "▤", Backup: "↻" };
 
 export default function NavigationSecure() {
   const pathname = usePathname();
@@ -14,7 +14,11 @@ export default function NavigationSecure() {
   if (pathname === "/login" || pathname === "/login/") return null;
   if (loading || !profile) return null;
 
-  const visibleItems = profile.module_scope === "MATHCHAMPS_ONLY" ? items.filter(([href]) => href === "/sessions") : items;
+  const visibleItems = profile.module_scope === "MATHCHAMPS_ONLY"
+    ? items.filter(([href]) => href === "/sessions")
+    : profile.role === "SUPERADMIN" || profile.role === "ATASAN"
+      ? items
+      : items.filter(([href]) => href !== "/activity-log");
 
   return <>
     <nav className="app-nav" aria-label="Dashboard Administrasi MT Regional Sumbar"><div className="app-nav-inner">
