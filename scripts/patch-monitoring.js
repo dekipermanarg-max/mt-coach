@@ -33,7 +33,7 @@ if (!s.includes('session-edit-modal')) {
 
 const styleNeedle = '<style>{`';
 const styleAdd = '.monitoring-session-actions{display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #eef2f7}.danger-btn{border:1px solid #fecaca;background:#fff1f2;color:#b91c1c;border-radius:10px;padding:9px 12px;font-weight:700;cursor:pointer}.danger-btn:disabled{opacity:.55;cursor:not-allowed}.session-edit-modal{width:min(760px,100%)}.session-edit-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:18px}.session-edit-grid .option-pill{align-self:end}@media(max-width:700px){.session-edit-grid{grid-template-columns:1fr}.monitoring-session-actions{justify-content:stretch}.monitoring-session-actions button{flex:1}}';
-if (!s.includes('.monitoring-session-actions')) throw new Error('action style marker not yet present');
+if (!s.includes('monitoring-session-actions')) throw new Error('action marker not yet present');
 s = s.replace(styleNeedle, styleNeedle + styleAdd);
 
 fs.writeFileSync(file, s);
