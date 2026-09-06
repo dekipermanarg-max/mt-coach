@@ -37,7 +37,7 @@ if (!s.includes('async function generateReportImage()')) {
     '      ctx.fillText(reportCompleteCount + " lengkap · " + reportIncompleteCount + " belum lengkap · " + reportRows.length + " sesi", 42, 138);',
     '      ctx.fillStyle = "#eff6ff"; ctx.fillRect(42, 158, width - 84, 30);',
     '      ctx.fillStyle = "#2563eb"; ctx.font = "700 13px Arial"; ctx.fillText("Checklist: Topik · Att · Star · Score · Sess · Foto · WA · AuVi · LD", 54, 178);',
-    '      const cols = [["MT",170],["Rombel",105],["Mapel",105],["Topik",70],["Att",60],["Star",60],["Score",70],["Sess",65],["Foto",65],["WA",55],["AuVi",70],["LD",55],["Status",100]];',
+    '      const cols: Array<[string, number]> = [["MT",170],["Rombel",105],["Mapel",105],["Topik",70],["Att",60],["Star",60],["Score",70],["Sess",65],["Foto",65],["WA",55],["AuVi",70],["LD",55],["Status",100]];',
     '      let x = 42; const tableY = headerH;',
     '      ctx.fillStyle = "#f1f5f9"; ctx.fillRect(42, tableY, width - 84, tableHeadH);',
     '      ctx.strokeStyle = "#dbe3ec"; ctx.lineWidth = 1;',
