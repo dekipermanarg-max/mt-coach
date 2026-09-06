@@ -13,6 +13,8 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const [resetBusy, setResetBusy] = useState(false);
+  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
   if (!loading && user && profile) {
@@ -23,6 +25,7 @@ export default function LoginPage() {
     e.preventDefault();
     setBusy(true);
     setError("");
+    setMessage("");
 
     const { data, error: signInError } = await supabase.auth.signInWithPassword({
       email: email.trim(),
@@ -58,6 +61,31 @@ export default function LoginPage() {
     router.replace("/");
   }
 
+  async function sendReset(e: FormEvent) {
+    e.preventDefault();
+    setResetBusy(true);
+    setError("");
+    setMessage("");
+
+    const targetEmail = email.trim();
+    if (!targetEmail) {
+      setError("Masukkan email terlebih dahulu.");
+      setResetBusy(false);
+      return;
+    }
+
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(targetEmail, {
+      redirectTo: `${window.location.origin}/set-password`,
+    });
+
+    if (resetError) {
+      setError(resetError.message);
+    } else {
+      setMessage("Link untuk membuat/mengganti password sudah dikirim ke email tersebut. Cek Inbox atau Spam.");
+    }
+    setResetBusy(false);
+  }
+
   return (
     <main style={{ minHeight: "100vh", background: "linear-gradient(180deg,#f8fafc 0%,#eef4ff 100%)", display: "grid", placeItems: "center", padding: 24 }}>
       <section style={{ width: "100%", maxWidth: 420, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 22, padding: 30, boxShadow: "0 20px 60px rgba(15,23,42,.10)" }}>
@@ -78,8 +106,16 @@ export default function LoginPage() {
           <label style={{ display: "block", fontSize: 11, fontWeight: 800, color: "#475569", margin: "16px 0 7px" }}>PASSWORD</label>
           <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" autoComplete="current-password" required style={{ width: "100%", height: 46, boxSizing: "border-box", border: "1px solid #d8e0ea", borderRadius: 11, padding: "0 13px", outline: "none", fontSize: 13 }} />
           {error && <div style={{ marginTop: 14, padding: "10px 12px", borderRadius: 10, background: "#fef2f2", border: "1px solid #fecaca", color: "#b91c1c", fontSize: 12, lineHeight: 1.45 }}>{error}</div>}
+          {message && <div style={{ marginTop: 14, padding: "10px 12px", borderRadius: 10, background: "#f0fdf4", border: "1px solid #bbf7d0", color: "#166534", fontSize: 12, lineHeight: 1.45 }}>{message}</div>}
           <button type="submit" disabled={busy} style={{ width: "100%", height: 46, marginTop: 18, border: 0, borderRadius: 11, background: "#2563eb", color: "#fff", fontWeight: 800, fontSize: 13, cursor: busy ? "wait" : "pointer", opacity: busy ? .7 : 1 }}>{busy ? "Memproses…" : "Masuk ke MT Coach"}</button>
         </form>
+
+        <form onSubmit={sendReset} style={{ marginTop: 12 }}>
+          <button type="submit" disabled={resetBusy} style={{ width: "100%", border: 0, background: "transparent", color: "#2563eb", fontSize: 12, fontWeight: 700, cursor: resetBusy ? "wait" : "pointer" }}>
+            {resetBusy ? "Mengirim link…" : "Belum punya password / Lupa password?"}
+          </button>
+        </form>
+
         <div style={{ marginTop: 18, textAlign: "center", fontSize: 11, color: "#94a3b8" }}>Akses cabang dan hak edit ditentukan oleh role akun.</div>
       </section>
     </main>
