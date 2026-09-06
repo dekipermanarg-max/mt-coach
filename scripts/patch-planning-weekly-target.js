@@ -33,13 +33,13 @@ const effectNeedle = '  const selectedDateLabel = date ? formatDate(date) : "";'
 const effectAdd = `  useEffect(() => {
     let cancelled = false;
     async function loadWeeklyTargets() {
-      if (!branchId) {
+      if (!branchId || !branch || !date) {
         setWeeklyAuviSessions(0);
         setWeeklyLdRombels(0);
-        setWeeklyRombelPopulation(0);
+        setWeeklyRombelPopulation(branch ? (BRANCH_ROMBEL_COUNTS[branch] || 0) : 0);
         return;
       }
-      const base = date ? new Date(date + "T00:00:00") : new Date();
+      const base = new Date(date + "T00:00:00");
       const day = base.getDay();
       const diff = day === 0 ? -6 : 1 - day;
       const start = new Date(base);
@@ -49,7 +49,12 @@ const effectAdd = `  useEffect(() => {
       const startDate = start.toISOString().slice(0, 10);
       const endDate = end.toISOString().slice(0, 10);
 
-      const weekRes = await supabase.from("weekly_planning").select("rombel_id,auvi_tv,ld,status").eq("branch_id", branchId).gte("planning_date", startDate).lte("planning_date", endDate);
+      const weekRes = await supabase
+        .from("weekly_planning")
+        .select("rombel_id,auvi_tv,ld,status")
+        .eq("branch_id", branchId)
+        .gte("planning_date", startDate)
+        .lte("planning_date", endDate);
       if (cancelled) return;
 
       const planningRows = weekRes.data || [];
@@ -57,7 +62,9 @@ const effectAdd = `  useEffect(() => {
       const planningRombels = new Set(planningRows.map(x => x.rombel_id).filter(Boolean));
       const population = configuredPopulation || planningRombels.size;
       const auviSessions = planningRows.filter(x => x.auvi_tv && x.status !== "Draft").length;
-      const ldRombels = new Set(planningRows.filter(x => x.ld && x.rombel_id && x.status !== "Draft").map(x => x.rombel_id)).size;
+      const ldRombels = new Set(
+        planningRows.filter(x => x.ld && x.rombel_id && x.status !== "Draft").map(x => x.rombel_id)
+      ).size;
 
       setWeeklyAuviSessions(auviSessions);
       setWeeklyLdRombels(ldRombels);
@@ -73,18 +80,21 @@ if (!s.includes('loadWeeklyTargets')) {
   s = s.replace(effectNeedle, effectAdd + effectNeedle);
 }
 
-const oldKpi = '<div className="card planning-kpi"><div className="planning-kpi-top"><div className="kpi-label">AuVi TV Coverage</div><div className="kpi-mini-icon">🎥</div></div><div className="kpi-value">{auviCoverage}%</div><div className="kpi-note">{auviRombels}/{totalRombels} rombel · target ≥ 50%</div></div>';
-const newKpi = '<div className="card planning-kpi"><div className="planning-kpi-top"><div className="kpi-label">AuVi TV Mingguan</div><div className="kpi-mini-icon">🎥</div></div><div className="kpi-value">{Math.min(100, Math.round((weeklyAuviSessions / 10) * 100))}%</div><div className="kpi-note">{weeklyAuviSessions}/10 sesi tercapai · target 10 sesi per minggu</div></div>';
-if (!s.includes('AuVi TV Mingguan')) {
-  if (!s.includes(oldKpi)) throw new Error('AuVi KPI marker not found');
-  s = s.replace(oldKpi, newKpi);
+// Replace the KPI cards by their visible labels, so the patch survives harmless source formatting changes.
+const auviCardRegex = /<div className="card planning-kpi"><div className="planning-kpi-top"><div className="kpi-label">(?:AuVi TV Coverage|AuVi TV Mingguan)<\/div>[\s\S]*?<\/div><div className="kpi-value">[\s\S]*?<\/div><div className="kpi-note">[\s\S]*?<\/div><\/div>/;
+const auviCard = '<div className="card planning-kpi"><div className="planning-kpi-top"><div className="kpi-label">AuVi TV Mingguan</div><div className="kpi-mini-icon">🎥</div></div><div className="kpi-value">{Math.min(100, Math.round((weeklyAuviSessions / 10) * 100))}%</div><div className="kpi-note">{weeklyAuviSessions}/10 sesi tercapai · target 10 sesi per minggu</div></div>';
+if (s.includes('AuVi TV Coverage')) {
+  if (!auviCardRegex.test(s)) throw new Error('AuVi KPI card marker not found');
+  s = s.replace(auviCardRegex, auviCard);
 }
 
-const oldLdKpi = '<div className="card planning-kpi"><div className="planning-kpi-top"><div className="kpi-label">LD</div><div className="kpi-mini-icon">👥</div></div><div className="kpi-value">{ldCount}<span style={{ fontSize: 14, color: "#94a3b8", marginLeft: 5 }}>/ 10</span></div><div className="kpi-note">Target 10 sesi per minggu</div></div>';
-const newLdKpi = '<div className="card planning-kpi"><div className="planning-kpi-top"><div className="kpi-label">LD Mingguan</div><div className="kpi-mini-icon">👥</div></div><div className="kpi-value">{weeklyLdRombels}/{weeklyRombelPopulation ? Math.ceil(weeklyRombelPopulation * 0.5) : 0}</div><div className="kpi-note">Target 50% rombel per minggu</div></div>';
-if (!s.includes('LD Mingguan')) {
-  if (!s.includes(oldLdKpi)) throw new Error('LD KPI marker not found');
-  s = s.replace(oldLdKpi, newLdKpi);
+const ldCardRegex = /<div className="card planning-kpi"><div className="planning-kpi-top"><div className="kpi-label">(?:LD|LD Mingguan)<\/div>[\s\S]*?<\/div><div className="kpi-value">[\s\S]*?<\/div><div className="kpi-note">[\s\S]*?<\/div><\/div>/;
+const ldCard = '<div className="card planning-kpi"><div className="planning-kpi-top"><div className="kpi-label">LD Mingguan</div><div className="kpi-mini-icon">👥</div></div><div className="kpi-value">{weeklyLdRombels}/{weeklyRombelPopulation ? Math.ceil(weeklyRombelPopulation * 0.5) : 0}</div><div className="kpi-note">Target 50% rombel per minggu</div></div>';
+if (s.includes('>LD</div>') || s.includes('>LD Mingguan</div>')) {
+  const matches = s.match(new RegExp(ldCardRegex.source, "g")) || [];
+  const ldMatch = matches.find(x => x.includes('>LD</div>') || x.includes('>LD Mingguan</div>'));
+  if (!ldMatch) throw new Error('LD KPI card marker not found');
+  s = s.replace(ldMatch, ldCard);
 }
 
 fs.writeFileSync(file, s);
