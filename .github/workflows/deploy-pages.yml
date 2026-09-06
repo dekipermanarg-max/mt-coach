@@ -32,6 +32,8 @@ jobs:
         run: node scripts/patch-monitoring.js
       - name: Patch Weekly Planning UI
         run: node scripts/patch-planning.js
+      - name: Patch Weekly AuVi Target
+        run: node scripts/patch-planning-weekly-target.js
       - name: Patch Dashboard Branding
         run: node scripts/patch-branding.js
       - name: Build static site
