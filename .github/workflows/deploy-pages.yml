@@ -30,6 +30,8 @@ jobs:
         run: npm install
       - name: Patch Monitoring UI
         run: node scripts/patch-monitoring.js
+      - name: Patch Dashboard Branding
+        run: node scripts/patch-branding.js
       - name: Build static site
         run: npm run build
       - name: Setup Pages
