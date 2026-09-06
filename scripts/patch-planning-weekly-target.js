@@ -20,14 +20,54 @@ const BRANCH_ROMBEL_COUNTS = {
 };
 
 const stateNeedle = '  const [ld, setLd] = useState(false);';
-const stateAdd = `\n  const [weeklyAuviSessions, setWeeklyAuviSessions] = useState(0);\n  const [weeklyLdRombels, setWeeklyLdRombels] = useState(0);\n  const [weeklyRombelPopulation, setWeeklyRombelPopulation] = useState(0);`;
+const stateAdd = `
+  const [weeklyAuviSessions, setWeeklyAuviSessions] = useState(0);
+  const [weeklyLdRombels, setWeeklyLdRombels] = useState(0);
+  const [weeklyRombelPopulation, setWeeklyRombelPopulation] = useState(0);`;
 if (!s.includes('weeklyAuviSessions')) {
   if (!s.includes(stateNeedle)) throw new Error('weekly KPI state marker not found');
   s = s.replace(stateNeedle, stateNeedle + stateAdd);
 }
 
 const effectNeedle = '  const selectedDateLabel = date ? formatDate(date) : "";';
-const effectAdd = `  useEffect(() => {\n    let cancelled = false;\n    async function loadWeeklyTargets() {\n      if (!branchId) {\n        setWeeklyAuviSessions(0);\n        setWeeklyLdRombels(0);\n        setWeeklyRombelPopulation(0);\n        return;\n      }\n      const base = date ? new Date(\`${date}T00:00:00\`) : new Date();\n      const day = base.getDay();\n      const diff = day === 0 ? -6 : 1 - day;\n      const start = new Date(base);\n      start.setDate(base.getDate() + diff);\n      const end = new Date(start);\n      end.setDate(start.getDate() + 6);\n      const startDate = start.toISOString().slice(0, 10);\n      const endDate = end.toISOString().slice(0, 10);\n\n      const weekRes = await supabase.from("weekly_planning").select("rombel_id,auvi_tv,ld,status").eq("branch_id", branchId).gte("planning_date", startDate).lte("planning_date", endDate);\n      if (cancelled) return;\n\n      const planningRows = weekRes.data || [];\n      const configuredPopulation = BRANCH_ROMBEL_COUNTS[branch] || 0;\n      const planningRombels = new Set(planningRows.map(x => x.rombel_id).filter(Boolean));\n      const population = configuredPopulation || planningRombels.size;\n      const auviSessions = planningRows.filter(x => x.auvi_tv && x.status !== "Draft").length;\n      const ldRombels = new Set(planningRows.filter(x => x.ld && x.rombel_id && x.status !== "Draft").map(x => x.rombel_id)).size;\n\n      setWeeklyAuviSessions(auviSessions);\n      setWeeklyLdRombels(ldRombels);\n      setWeeklyRombelPopulation(population);\n    }\n    loadWeeklyTargets();\n    return () => { cancelled = true; };\n  }, [branchId, branch, date]);\n\n`;
+const effectAdd = `  useEffect(() => {
+    let cancelled = false;
+    async function loadWeeklyTargets() {
+      if (!branchId) {
+        setWeeklyAuviSessions(0);
+        setWeeklyLdRombels(0);
+        setWeeklyRombelPopulation(0);
+        return;
+      }
+      const base = date ? new Date(\`${date}T00:00:00\`) : new Date();
+      const day = base.getDay();
+      const diff = day === 0 ? -6 : 1 - day;
+      const start = new Date(base);
+      start.setDate(base.getDate() + diff);
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      const startDate = start.toISOString().slice(0, 10);
+      const endDate = end.toISOString().slice(0, 10);
+
+      const weekRes = await supabase.from("weekly_planning").select("rombel_id,auvi_tv,ld,status").eq("branch_id", branchId).gte("planning_date", startDate).lte("planning_date", endDate);
+      if (cancelled) return;
+
+      const planningRows = weekRes.data || [];
+      const configuredPopulation = BRANCH_ROMBEL_COUNTS[branch] || 0;
+      const planningRombels = new Set(planningRows.map(x => x.rombel_id).filter(Boolean));
+      const population = configuredPopulation || planningRombels.size;
+      const auviSessions = planningRows.filter(x => x.auvi_tv && x.status !== "Draft").length;
+      const ldRombels = new Set(planningRows.filter(x => x.ld && x.rombel_id && x.status !== "Draft").map(x => x.rombel_id)).size;
+
+      setWeeklyAuviSessions(auviSessions);
+      setWeeklyLdRombels(ldRombels);
+      setWeeklyRombelPopulation(population);
+    }
+    loadWeeklyTargets();
+    return () => { cancelled = true; };
+  }, [branchId, branch, date]);
+
+`;
 if (!s.includes('loadWeeklyTargets')) {
   if (!s.includes(effectNeedle)) throw new Error('weekly KPI effect marker not found');
   s = s.replace(effectNeedle, effectAdd + effectNeedle);
