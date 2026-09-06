@@ -14,12 +14,36 @@ export default function SetPasswordPage() {
   const [checking, setChecking] = useState(true);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [email, setEmail] = useState("");
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) setError("Link sudah tidak aktif atau belum diverifikasi. Silakan minta link password baru dari halaman login.");
+    let active = true;
+
+    async function prepareAccount() {
+      const { data } = await supabase.auth.getSession();
+      if (!active) return;
+
+      if (!data.session) {
+        setError("Link sudah tidak aktif atau belum diverifikasi. Silakan buka kembali link undangan/password terbaru dari email.");
+        setChecking(false);
+        return;
+      }
+
+      setEmail(data.session.user.email || "");
+
+      const { error: claimError } = await supabase.rpc("claim_my_app_user");
+      if (!active) return;
+
+      if (claimError) {
+        setError("Akun berhasil diverifikasi, tetapi belum terhubung ke data akun MT Coach. Hubungi SUPERADMIN.");
+      }
       setChecking(false);
-    });
+    }
+
+    void prepareAccount();
+    return () => {
+      active = false;
+    };
   }, []);
 
   async function submit(e: FormEvent) {
@@ -37,6 +61,7 @@ export default function SetPasswordPage() {
     }
 
     setBusy(true);
+
     const { error: updateError } = await supabase.auth.updateUser({ password });
     if (updateError) {
       setError(updateError.message);
@@ -59,11 +84,11 @@ export default function SetPasswordPage() {
         <div style={{ textAlign: "center" }}>
           <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".12em", color: "#2563eb" }}>MT COACH · ACCOUNT SETUP</div>
           <h1 style={{ margin: "8px 0 6px", fontSize: 28, letterSpacing: "-.03em", color: "#172033" }}>Buat Password</h1>
-          <p style={{ margin: 0, fontSize: 13, color: "#64748b" }}>Buat password untuk akun MT Coach kamu.</p>
+          <p style={{ margin: 0, fontSize: 13, color: "#64748b" }}>{email ? `Akun: ${email}` : "Buat password untuk akun MT Coach kamu."}</p>
         </div>
 
         {checking ? (
-          <div style={{ marginTop: 28, textAlign: "center", fontSize: 13, color: "#64748b" }}>Memeriksa link undangan…</div>
+          <div style={{ marginTop: 28, textAlign: "center", fontSize: 13, color: "#64748b" }}>Memverifikasi undangan dan akun…</div>
         ) : (
           <form onSubmit={submit} style={{ marginTop: 26 }}>
             <label style={{ display: "block", fontSize: 11, fontWeight: 800, color: "#475569", marginBottom: 7 }}>PASSWORD BARU</label>
@@ -72,7 +97,7 @@ export default function SetPasswordPage() {
             <input value={confirm} onChange={(e) => setConfirm(e.target.value)} type="password" autoComplete="new-password" minLength={8} required style={{ width: "100%", height: 46, boxSizing: "border-box", border: "1px solid #d8e0ea", borderRadius: 11, padding: "0 13px", outline: "none", fontSize: 13 }} />
             {error && <div style={{ marginTop: 14, padding: "10px 12px", borderRadius: 10, background: "#fef2f2", border: "1px solid #fecaca", color: "#b91c1c", fontSize: 12, lineHeight: 1.45 }}>{error}</div>}
             {message && <div style={{ marginTop: 14, padding: "10px 12px", borderRadius: 10, background: "#f0fdf4", border: "1px solid #bbf7d0", color: "#166534", fontSize: 12, lineHeight: 1.45 }}>{message}</div>}
-            <button type="submit" disabled={busy || !!message} style={{ width: "100%", height: 46, marginTop: 18, border: 0, borderRadius: 11, background: "#2563eb", color: "#fff", fontWeight: 800, fontSize: 13, cursor: busy ? "wait" : "pointer", opacity: busy ? .7 : 1 }}>{busy ? "Menyimpan…" : "Simpan Password"}</button>
+            <button type="submit" disabled={busy || !!error || !!message} style={{ width: "100%", height: 46, marginTop: 18, border: 0, borderRadius: 11, background: "#2563eb", color: "#fff", fontWeight: 800, fontSize: 13, cursor: busy ? "wait" : "pointer", opacity: busy ? .7 : 1 }}>{busy ? "Menyimpan…" : "Simpan Password"}</button>
           </form>
         )}
       </section>
