@@ -30,6 +30,8 @@ jobs:
         run: npm install
       - name: Patch Monitoring UI
         run: node scripts/patch-monitoring.js
+      - name: Patch WhatsApp Report Wording
+        run: node scripts/patch-wa-report.js
       - name: Patch Weekly Planning UI
         run: node scripts/patch-planning.js
       - name: Patch Weekly Planning Dropdowns
