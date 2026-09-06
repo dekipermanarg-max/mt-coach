@@ -39,7 +39,7 @@ const effectAdd = `  useEffect(() => {
         setWeeklyRombelPopulation(0);
         return;
       }
-      const base = date ? new Date(\`${date}T00:00:00\`) : new Date();
+      const base = date ? new Date(date + "T00:00:00") : new Date();
       const day = base.getDay();
       const diff = day === 0 ? -6 : 1 - day;
       const start = new Date(base);
