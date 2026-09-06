@@ -14,9 +14,10 @@ export default function NavigationSecure() {
   if (pathname === "/login" || pathname === "/login/") return null;
   if (loading || !profile) return null;
 
+  const canSeeActivityLog = profile.role === "SUPERADMIN" || profile.role === "MTC";
   const visibleItems = profile.module_scope === "MATHCHAMPS_ONLY"
-    ? items.filter(([href]) => href === "/sessions")
-    : profile.role === "SUPERADMIN" || profile.role === "ATASAN"
+    ? items.filter(([href]) => href === "/sessions" || (href === "/activity-log" && canSeeActivityLog))
+    : canSeeActivityLog
       ? items
       : items.filter(([href]) => href !== "/activity-log");
 
