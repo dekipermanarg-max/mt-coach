@@ -30,7 +30,7 @@ const fnAdd = `  async function generateReportImage() {
       ctx.fillStyle = "#172033"; ctx.font = "800 30px Arial"; ctx.fillText("REPORT KELENGKAPAN ADMINISTRASI MT", 42, 52);
       ctx.fillStyle = "#64748b"; ctx.font = "600 18px Arial"; ctx.fillText(formatDate(waDate), 42, 82);
       ctx.fillText(branchId === "all" ? "Semua Cabang" : nameOf(branches, branchId), 42, 110);
-      ctx.fillText(`${reportCompleteCount} lengkap · ${reportIncompleteCount} belum lengkap · ${reportRows.length} sesi`, 42, 138);
+      ctx.fillText(reportCompleteCount + " lengkap · " + reportIncompleteCount + " belum lengkap · " + reportRows.length + " sesi", 42, 138);
       ctx.fillStyle = "#eff6ff"; ctx.fillRect(42, 158, width - 84, 30);
       ctx.fillStyle = "#2563eb"; ctx.font = "700 13px Arial"; ctx.fillText("Checklist: Topik · Att · Star · Score · Sess · Foto · WA · AuVi · LD", 54, 178);
 
@@ -56,15 +56,14 @@ const fnAdd = `  async function generateReportImage() {
         const checks = [row.topik_sub_topik_done, row.attendance, row.starchamps, row.activity_score, row.report_sessions, row.foto_kbm, row.report_wa, Boolean(row.auvi_tv_status), Boolean(row.ld_status)];
         checks.forEach((ok, i) => { const center = colX[3 + i] + cols[3 + i][1] / 2; mark(Boolean(ok), center, y + 34); });
         const complete = adminDone(row) === adminTotal(row);
-        ctx.fillStyle = complete ? "#166534" : "#b91c1c"; ctx.font = "800 12px Arial"; ctx.fillText(complete ? "LENGKAP" : `${adminDone(row)}/${adminTotal(row)}`, colX[12] + 8, y + 31);
+        ctx.fillStyle = complete ? "#166534" : "#b91c1c"; ctx.font = "800 12px Arial"; ctx.fillText(complete ? "LENGKAP" : (adminDone(row) + "/" + adminTotal(row)), colX[12] + 8, y + 31);
       });
       ctx.fillStyle = "#f8fafc"; ctx.fillRect(42, height - footerH, width - 84, footerH);
       ctx.fillStyle = "#475569"; ctx.font = "600 13px Arial"; ctx.fillText("✓ Lengkap    × Belum lengkap", 54, height - 56);
       ctx.fillText("Generated dari Monitoring · Dashboard Administrasi MT Regional Sumbar", 54, height - 30);
-      const dataUrl = canvas.toDataURL("image/png");
-      setReportImage(dataUrl);
+      setReportImage(canvas.toDataURL("image/png"));
     } catch (e) {
-      setMessage(`Gagal membuat screenshot: ${e instanceof Error ? e.message : "Unknown error"}`);
+      setMessage("Gagal membuat screenshot: " + (e instanceof Error ? e.message : "Unknown error"));
     } finally { setGeneratingReportImage(false); }
   }
 
@@ -72,7 +71,7 @@ const fnAdd = `  async function generateReportImage() {
     if (!reportImage) return;
     try {
       const blob = await (await fetch(reportImage)).blob();
-      const file = new File([blob], `report-admin-${waDate}.png`, { type: "image/png" });
+      const file = new File([blob], "report-admin-" + waDate + ".png", { type: "image/png" });
       if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) await navigator.share({ title: "Report Administrasi MT", files: [file] });
       else { const a = document.createElement("a"); a.href = reportImage; a.download = file.name; a.click(); }
     } catch (e) { if ((e as Error)?.name !== "AbortError") setMessage("Gambar sudah siap. Silakan gunakan tombol Simpan Gambar."); }
@@ -80,7 +79,7 @@ const fnAdd = `  async function generateReportImage() {
 
   function downloadReportImage() {
     if (!reportImage) return;
-    const a = document.createElement("a"); a.href = reportImage; a.download = `report-admin-${waDate}.png`; a.click();
+    const a = document.createElement("a"); a.href = reportImage; a.download = "report-admin-" + waDate + ".png"; a.click();
   }
 
 `;
