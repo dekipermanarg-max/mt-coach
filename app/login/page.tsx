@@ -53,7 +53,7 @@ export default function LoginPage() {
 
     if (!profileRow) {
       await supabase.auth.signOut();
-      setError("Akun berhasil terautentikasi, tetapi belum memiliki akses MT Coach. Hubungi SUPERADMIN.");
+      setError("Akun berhasil terautentikasi, tetapi belum memiliki akses Dashboard Administrasi. Hubungi SUPERADMIN.");
       setBusy(false);
       return;
     }
@@ -95,9 +95,9 @@ export default function LoginPage() {
           </div>
         </div>
         <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".12em", color: "#2563eb" }}>MT COACH · SECURE ACCESS</div>
+          <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".12em", color: "#2563eb" }}>DASHBOARD ADMINISTRASI MT REGIONAL SUMBAR</div>
           <h1 style={{ margin: "8px 0 6px", fontSize: 28, letterSpacing: "-.03em", color: "#172033" }}>Masuk</h1>
-          <p style={{ margin: 0, fontSize: 13, color: "#64748b" }}>Gunakan akun MT Coach yang sudah terdaftar.</p>
+          <p style={{ margin: 0, fontSize: 13, color: "#64748b" }}>Gunakan akun yang sudah terdaftar.</p>
         </div>
 
         <form onSubmit={submit} style={{ marginTop: 26 }}>
@@ -107,7 +107,7 @@ export default function LoginPage() {
           <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" autoComplete="current-password" required style={{ width: "100%", height: 46, boxSizing: "border-box", border: "1px solid #d8e0ea", borderRadius: 11, padding: "0 13px", outline: "none", fontSize: 13 }} />
           {error && <div style={{ marginTop: 14, padding: "10px 12px", borderRadius: 10, background: "#fef2f2", border: "1px solid #fecaca", color: "#b91c1c", fontSize: 12, lineHeight: 1.45 }}>{error}</div>}
           {message && <div style={{ marginTop: 14, padding: "10px 12px", borderRadius: 10, background: "#f0fdf4", border: "1px solid #bbf7d0", color: "#166534", fontSize: 12, lineHeight: 1.45 }}>{message}</div>}
-          <button type="submit" disabled={busy} style={{ width: "100%", height: 46, marginTop: 18, border: 0, borderRadius: 11, background: "#2563eb", color: "#fff", fontWeight: 800, fontSize: 13, cursor: busy ? "wait" : "pointer", opacity: busy ? .7 : 1 }}>{busy ? "Memproses…" : "Masuk ke MT Coach"}</button>
+          <button type="submit" disabled={busy} style={{ width: "100%", height: 46, marginTop: 18, border: 0, borderRadius: 11, background: "#2563eb", color: "#fff", fontWeight: 800, fontSize: 13, cursor: busy ? "wait" : "pointer", opacity: busy ? .7 : 1 }}>{busy ? "Memproses…" : "Masuk"}</button>
         </form>
 
         <form onSubmit={sendReset} style={{ marginTop: 12 }}>
