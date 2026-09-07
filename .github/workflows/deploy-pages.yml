@@ -50,6 +50,8 @@ jobs:
         run: node scripts/patch-branding.js
       - name: Patch WhatsApp Template Manager
         run: node scripts/patch-data-whatsapp.js
+      - name: Patch WhatsApp Poster Download Button
+        run: node scripts/patch-wa-poster-button.js
       - name: Build static site
         run: npm run build
       - name: Setup Pages
