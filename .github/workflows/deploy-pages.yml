@@ -40,6 +40,8 @@ jobs:
         run: node scripts/patch-wa-screenshot-clinic-pr.js
       - name: Finalize WhatsApp Screenshot UI
         run: node scripts/patch-wa-screenshot-no-status-v2.js
+      - name: Apply BAC-branded Screenshot Design
+        run: node scripts/patch-wa-screenshot-design-v3.js
       - name: Patch Weekly Planning UI
         run: node scripts/patch-planning.js
       - name: Patch Weekly Planning Dropdowns
