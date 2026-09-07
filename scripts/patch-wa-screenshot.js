@@ -13,21 +13,19 @@ s = s.replace(
   '(row.auvi_tv_status === "Tidak connect ke TV" || !row.auvi_tv_status) && "AuVi TV", (row.ld_status === "Belum report ke CMS" || !row.ld_status) && "LD",'
 );
 
-// Add screenshot state once.
 const stateNeedle = '  const [waDate, setWaDate] = useState(() => new Date().toISOString().slice(0, 10));';
 if (!s.includes('const [reportImage, setReportImage]')) {
   if (!s.includes(stateNeedle)) throw new Error("WA date state marker not found");
-  s = s.replace(stateNeedle, stateNeedle + '\n  const [reportImage, setReportImage] = useState<string | null>(null);\n  const [generatingReportImage, setGeneratingReportImage] = useState(false);');
+  s = s.replace(stateNeedle, stateNeedle + '\n  const [reportImage, setReportImage] = useState<string | null>(null);\n  const [generatingReportImage, setGeneratingReportImage] = useState(false);\n  const [reportImageError, setReportImageError] = useState<string | null>(null);');
 }
 
-// Add the image generator before the existing copy function.
 if (!s.includes('async function generateReportImage()')) {
   const marker = '  async function copyWaReport() {';
   if (!s.includes(marker)) throw new Error("copy WA function marker not found");
   const fn = [
     '  async function generateReportImage() {',
-    '    if (!reportRows.length) { setMessage("Tidak ada sesi pada tanggal yang dipilih untuk dibuatkan screenshot."); return; }',
-    '    setGeneratingReportImage(true); setMessage("");',
+    '    if (!reportRows.length) { setReportImageError("Tidak ada sesi pada tanggal yang dipilih untuk dibuatkan screenshot."); return; }',
+    '    setGeneratingReportImage(true); setReportImageError(null); setMessage("");',
     '    try {',
     '      const width = 1080;',
     '      const rowH = 76;',
@@ -69,9 +67,9 @@ if (!s.includes('async function generateReportImage()')) {
     '      ctx.fillStyle = "#f8fafc"; ctx.fillRect(42, height - footerH, width - 84, footerH);',
     '      ctx.fillStyle = "#475569"; ctx.font = "600 13px Arial"; ctx.fillText("✓ Lengkap    × Belum lengkap", 54, height - 56);',
     '      ctx.fillText("Generated dari Monitoring · Dashboard Administrasi MT Regional Sumbar", 54, height - 30);',
-    '      setReportImage(canvas.toDataURL("image/png"));',
+    '      setReportImage(canvas.toDataURL("image/png")); setShowWaReport(false);',
     '    } catch (e) {',
-    '      setMessage("Gagal membuat screenshot: " + (e instanceof Error ? e.message : "Unknown error"));',
+    '      setReportImageError("Gagal membuat screenshot: " + (e instanceof Error ? e.message : "Unknown error"));',
     '    } finally { setGeneratingReportImage(false); }',
     '  }',
     '',
@@ -82,7 +80,7 @@ if (!s.includes('async function generateReportImage()')) {
     '      const file = new File([blob], "report-admin-" + waDate + ".png", { type: "image/png" });',
     '      if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) await navigator.share({ title: "Report Administrasi MT", files: [file] });',
     '      else downloadReportImage();',
-    '    } catch (e) { if ((e as Error)?.name !== "AbortError") setMessage("Gambar sudah siap. Silakan gunakan tombol Simpan Gambar."); }',
+    '    } catch (e) { if ((e as Error)?.name !== "AbortError") setReportImageError("Gambar sudah siap. Silakan gunakan tombol Simpan Gambar."); }',
     '  }',
     '',
     '  function downloadReportImage() {',
@@ -94,15 +92,22 @@ if (!s.includes('async function generateReportImage()')) {
   s = s.replace(marker, fn + marker);
 }
 
-// Put the screenshot button inside the WhatsApp modal.
-if (!s.includes('onClick={generateReportImage}')) {
+// Explicit click wrapper; keep the button inside the existing WhatsApp modal.
+if (!s.includes('onClick={() => { void generateReportImage(); }}')) {
+  s = s.replace(
+    'onClick={generateReportImage} disabled={generatingReportImage}',
+    'onClick={() => { void generateReportImage(); }} disabled={generatingReportImage}'
+  );
+}
+
+// Add screenshot button if the previous source does not already contain it.
+if (!s.includes('🖼️ Buat Screenshot')) {
   const actionsNeedle = '<div className="wa-modal-actions"><button type="button" className="secondary-btn" onClick={copyWaReport}>';
-  const actionsReplacement = '<div className="wa-modal-actions"><button type="button" className="secondary-btn" onClick={generateReportImage} disabled={generatingReportImage}>{generatingReportImage ? "⏳ Membuat gambar..." : "🖼️ Buat Screenshot"}</button><button type="button" className="secondary-btn" onClick={copyWaReport}>';
+  const actionsReplacement = '<div className="wa-modal-actions"><button type="button" className="secondary-btn" onClick={() => { void generateReportImage(); }} disabled={generatingReportImage}>{generatingReportImage ? "⏳ Membuat gambar..." : "🖼️ Buat Screenshot"}</button><button type="button" className="secondary-btn" onClick={copyWaReport}>';
   if (!s.includes(actionsNeedle)) throw new Error("WA modal actions marker not found");
   s = s.replace(actionsNeedle, actionsReplacement);
 }
 
-// Add the image preview modal after the WhatsApp modal.
 if (!s.includes('report-image-modal')) {
   const modalEnd = '    {showWaReport && <div className="wa-modal-backdrop"';
   const imageModal = '    {reportImage && <div className="wa-modal-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) setReportImage(null); }}><section className="wa-modal report-image-modal" role="dialog" aria-modal="true" aria-labelledby="report-image-title"><div className="wa-modal-head"><div><div className="eyebrow">MONITORING · VISUAL REPORT</div><h2 id="report-image-title">🖼️ Screenshot Report</h2><p>Checklist lengkap dan belum lengkap siap dikirim ke WhatsApp.</p></div><button type="button" className="wa-close" onClick={() => setReportImage(null)} aria-label="Tutup">×</button></div><div className="report-image-wrap"><img src={reportImage} alt="Report kelengkapan administrasi MT" /></div><div className="wa-modal-actions"><button type="button" className="secondary-btn" onClick={downloadReportImage}>💾 Simpan Gambar</button><button type="button" className="primary-btn" onClick={shareReportImage}>📤 Bagikan</button></div></section></div>}\n';
@@ -110,17 +115,24 @@ if (!s.includes('report-image-modal')) {
   s = s.replace(modalEnd, imageModal + modalEnd);
 }
 
-// Clean white screenshot: no blue checklist banner.
+// Clean screenshot: no blue banner.
 const oldBanner = '      ctx.fillStyle = "#eff6ff"; ctx.fillRect(42, 158, width - 84, 30);\n      ctx.fillStyle = "#2563eb"; ctx.font = "700 13px Arial"; ctx.fillText("Checklist: Topik · Att · Star · Score · Sess · Foto · WA · AuVi · LD", 54, 178);\n';
 s = s.replace(oldBanner, '');
 
-// Add compact styling without touching existing monitoring styles.
 const styleNeedle = '<style>{`';
-const styleAdd = '.report-image-modal{width:min(1120px,100%);position:relative;z-index:1100}.report-image-wrap{margin-top:16px;padding:10px;border:1px solid #e5e7eb;border-radius:14px;background:#f8fafc;overflow:auto;text-align:center}.report-image-wrap img{display:block;width:100%;height:auto;max-height:68vh;object-fit:contain;margin:auto;border-radius:8px}.report-image-modal .wa-modal-actions{justify-content:flex-end}@media(max-width:700px){.report-image-modal{padding:14px}.report-image-wrap img{max-height:62vh}}';
+const styleAdd = '.report-image-error{margin-top:10px;padding:10px 12px;border:1px solid #fecaca;border-radius:10px;background:#fef2f2;color:#b91c1c;font-size:12px}.report-image-error:empty{display:none}.report-image-modal{width:min(1120px,100%);position:relative;z-index:1101}.report-image-wrap{margin-top:16px;padding:10px;border:1px solid #e5e7eb;border-radius:14px;background:#fff;overflow:auto;text-align:center}.report-image-wrap img{display:block;width:100%;height:auto;max-height:68vh;object-fit:contain;margin:auto;border-radius:8px}.report-image-modal .wa-modal-actions{justify-content:flex-end}@media(max-width:700px){.report-image-modal{padding:14px}.report-image-wrap img{max-height:62vh}}';
 if (!s.includes('report-image-css-marker')) {
   if (!s.includes(styleNeedle)) throw new Error("Monitoring style marker not found");
   s = s.replace(styleNeedle, styleNeedle + styleAdd);
   s = s.replace('`}</style>', '/* report-image-css-marker */`}</style>');
+}
+
+// Put visible error area in the WhatsApp modal.
+if (!s.includes('report-image-error')) {
+  const actionsNeedle = '<div className="wa-modal-actions"><button type="button" className="secondary-btn" onClick={copyWaReport}>';
+  const replacement = '<div className="report-image-error" role="alert">{reportImageError}</div><div className="wa-modal-actions"><button type="button" className="secondary-btn" onClick={copyWaReport}>';
+  if (!s.includes(actionsNeedle)) throw new Error("WA modal actions marker not found");
+  s = s.replace(actionsNeedle, replacement);
 }
 
 fs.writeFileSync(file, s);
