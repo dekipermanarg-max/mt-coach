@@ -34,6 +34,8 @@ jobs:
         run: node scripts/patch-wa-report.js
       - name: Patch WhatsApp Screenshot Report
         run: node scripts/patch-wa-screenshot.js
+      - name: Remove WhatsApp Screenshot Status Column
+        run: node scripts/patch-wa-screenshot-no-status.js
       - name: Patch Weekly Planning UI
         run: node scripts/patch-planning.js
       - name: Patch Weekly Planning Dropdowns
