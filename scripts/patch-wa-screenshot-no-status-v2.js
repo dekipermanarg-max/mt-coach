@@ -64,7 +64,7 @@ s = s.replace(/\n\s*const complete = adminDone\(row\) === adminTotal\(row\);\n\s
 
 const extraCss = '.report-image-modal{width:min(1680px,100%);max-height:94vh;padding:24px;z-index:1101}.report-image-wrap{width:100%;overflow:auto;background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;padding:10px}.report-image-wrap img{display:block;width:1600px;max-width:none;height:auto;margin:0 auto;border-radius:12px}.report-image-modal .wa-modal-actions{margin-top:14px}.report-image-modal .wa-modal-head{margin-bottom:12px}@media(max-width:700px){.report-image-modal{padding:14px}.report-image-wrap{overflow-x:auto}.report-image-wrap img{width:1600px}}';
 if (!s.includes('.report-image-modal{')) {
-  const styleClose = s.lastIndexOf('`}</style>`);
+  const styleClose = s.lastIndexOf('`}</style>');
   if (styleClose >= 0) s = s.slice(0, styleClose) + extraCss + s.slice(styleClose);
 }
 
