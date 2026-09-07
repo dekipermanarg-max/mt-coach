@@ -1,6 +1,7 @@
 name: Deploy to GitHub Pages
 
 # Force a fresh Pages deployment so the latest UI changes are published.
+# Screenshot runtime fix is applied before the production build.
 on:
   push:
     branches: [main]
