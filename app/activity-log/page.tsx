@@ -27,21 +27,69 @@ const TABLE_LABELS: Record<string, string> = {
   sessions: "Mathchamps",
 };
 const ACTION_LABELS: Record<string, string> = { INSERT: "Tambah", UPDATE: "Ubah", DELETE: "Hapus" };
+const FIELD_LABELS: Record<string, string> = {
+  planning_date: "Tanggal",
+  start_time: "Jam Mulai",
+  end_time: "Jam Selesai",
+  branch_id: "Cabang",
+  mt_id: "MT",
+  rombel_id: "Rombel",
+  mapel_id: "Mapel",
+  jenis_sesi: "Jenis Sesi",
+  status: "Status",
+  topik_sub_topik_done: "Topik/Subtopik",
+  attendance: "Attendance",
+  starchamps: "Starchamps",
+  activity_score: "Activity Score",
+  report_sessions: "Report Sessions",
+  foto_kbm: "Foto KBM",
+  report_wa: "Report WA",
+  auvi_tv_status: "AuVi TV",
+  ld_status: "LD",
+  product_id: "Produk",
+  program_id: "Program",
+  notes: "Catatan",
+  teacher_notes: "Catatan MT",
+  name: "Nama",
+  username: "Username",
+  active: "Aktif",
+  created_at: "Dibuat",
+  updated_at: "Diperbarui",
+};
 const PAGE_SIZE = 30;
 
 function dateTimeLabel(value: string) {
   return new Intl.DateTimeFormat("id-ID", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
 }
+
 function valueLabel(value: unknown) {
   if (value === null || value === undefined || value === "") return "—";
   if (typeof value === "boolean") return value ? "Ya" : "Tidak";
+  if (typeof value === "object") return JSON.stringify(value);
   return String(value);
 }
+
+function fieldLabel(key: string) {
+  return FIELD_LABELS[key] || key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function resolveValue(key: string, value: unknown, branches: MasterRow[], mts: MasterRow[], rombels: MasterRow[], mapels: MasterRow[]) {
+  if (value === null || value === undefined || value === "") return "—";
+  if (key === "branch_id") return branches.find((x) => x.id === value)?.name || String(value);
+  if (key === "mt_id") return mts.find((x) => x.id === value)?.name || String(value);
+  if (key === "rombel_id") return rombels.find((x) => x.id === value)?.name || String(value);
+  if (key === "mapel_id") return mapels.find((x) => x.id === value)?.name || String(value);
+  return valueLabel(value);
+}
+
 function changedFields(row: AuditRow) {
   if (row.action !== "UPDATE" || !row.old_data || !row.new_data) return [] as { key: string; before: unknown; after: unknown }[];
   const keys = Array.from(new Set([...Object.keys(row.old_data), ...Object.keys(row.new_data)]));
-  return keys.filter((key) => key !== "updated_at" && JSON.stringify(row.old_data?.[key]) !== JSON.stringify(row.new_data?.[key])).map((key) => ({ key, before: row.old_data?.[key], after: row.new_data?.[key] }));
+  return keys
+    .filter((key) => key !== "updated_at" && JSON.stringify(row.old_data?.[key]) !== JSON.stringify(row.new_data?.[key]))
+    .map((key) => ({ key, before: row.old_data?.[key], after: row.new_data?.[key] }));
 }
+
 function recordSummary(row: AuditRow, branches: MasterRow[], mts: MasterRow[], rombels: MasterRow[], mapels: MasterRow[]) {
   const data = row.new_data || row.old_data || {};
   if (row.table_name === "weekly_planning") {
@@ -58,6 +106,12 @@ function recordSummary(row: AuditRow, branches: MasterRow[], mts: MasterRow[], r
     return `${branch} · ${mt} · ${rombel}`;
   }
   return String(data.name || data.username || row.record_id || "Data");
+}
+
+function detailEntries(data: Record<string, unknown> | null, tableName: string) {
+  if (!data) return [] as [string, unknown][];
+  const hiddenKeys = new Set(["id", "updated_at"]);
+  return Object.entries(data).filter(([key]) => !hiddenKeys.has(key));
 }
 
 export default function ActivityLogPage() {
@@ -77,7 +131,8 @@ export default function ActivityLogPage() {
   const [expanded, setExpanded] = useState<string | null>(null);
 
   async function load() {
-    setLoading(true); setMessage("");
+    setLoading(true);
+    setMessage("");
     const [audit, b, mt, r, m] = await Promise.all([
       supabase.from("audit_log").select("id,table_name,record_id,action,old_data,new_data,changed_at,actor_name,actor_username,actor_role").order("changed_at", { ascending: false }).limit(500),
       supabase.from("branches").select("id,name").order("name"),
@@ -86,10 +141,18 @@ export default function ActivityLogPage() {
       supabase.from("master_mapel").select("id,name").order("name"),
     ]);
     if (audit.error) setMessage(`Gagal memuat Activity Log: ${audit.error.message}`);
-    setRows((audit.data || []) as AuditRow[]); setBranches((b.data || []) as MasterRow[]); setMts((mt.data || []) as MasterRow[]); setRombels((r.data || []) as MasterRow[]); setMapels((m.data || []) as MasterRow[]); setVisibleCount(PAGE_SIZE); setLoading(false);
+    setRows((audit.data || []) as AuditRow[]);
+    setBranches((b.data || []) as MasterRow[]);
+    setMts((mt.data || []) as MasterRow[]);
+    setRombels((r.data || []) as MasterRow[]);
+    setMapels((m.data || []) as MasterRow[]);
+    setVisibleCount(PAGE_SIZE);
+    setLoading(false);
   }
 
-  useEffect(() => { if (!authLoading && profile?.role === "SUPERADMIN" || !authLoading && profile?.role === "MTC") void load(); }, [authLoading, profile?.role]);
+  useEffect(() => {
+    if (!authLoading && ["SUPERADMIN", "MTC"].includes(profile?.role || "")) void load();
+  }, [authLoading, profile?.role]);
 
   const actorLabel = (row: AuditRow) => row.actor_name || row.actor_username || "Sistem";
   const actors = useMemo(() => Array.from(new Set(rows.map((r) => actorLabel(r)))).sort((a, b) => a.localeCompare(b)), [rows]);
@@ -106,8 +169,8 @@ export default function ActivityLogPage() {
   if (!profile || !["SUPERADMIN", "MTC"].includes(profile.role)) return <div className="page-wrap"><section className="card" style={{ padding: 28 }}><strong>Akses terbatas.</strong><p style={{ color: "#64748b" }}>Activity Log hanya dapat dilihat oleh Superadmin dan MTC sesuai kewenangannya.</p></section></div>;
 
   return <div className="page-wrap">
-    <style>{`.activity-hero{padding:26px 28px;border:1px solid #dbe7f5;border-radius:20px;background:linear-gradient(135deg,#f8fbff,#fff);box-shadow:0 8px 28px rgba(15,23,42,.04)}.activity-hero .eyebrow{font-size:10px;font-weight:800;letter-spacing:.12em;color:#2563eb}.activity-hero h1{margin:7px 0 5px;font-size:27px;letter-spacing:-.03em;color:#172033}.activity-hero p{margin:0;color:#64748b;font-size:13px}.activity-toolbar{display:grid;grid-template-columns:1.4fr .7fr .9fr .9fr;gap:10px;margin:16px 0}.activity-toolbar input,.activity-toolbar select{height:42px;width:100%;border:1px solid #d8e0ea;border-radius:10px;background:#fff;padding:0 12px;color:#172033;font:600 12px Inter,Arial,sans-serif;outline:none}.activity-toolbar input:focus,.activity-toolbar select:focus{border-color:#60a5fa;box-shadow:0 0 0 3px rgba(37,99,235,.08)}.activity-card{overflow:hidden}.activity-head{display:flex;justify-content:space-between;align-items:center;padding:18px 20px;border-bottom:1px solid #eef2f7}.activity-head h2{margin:0;font-size:16px}.activity-head span{font-size:11px;color:#64748b}.activity-list{display:flex;flex-direction:column}.activity-item{display:grid;grid-template-columns:38px minmax(0,1fr) auto;gap:12px;padding:14px 20px;border-bottom:1px solid #f1f5f9}.activity-item:last-child{border-bottom:0}.activity-icon{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:#eff6ff;color:#2563eb;font-size:14px}.activity-main{min-width:0}.activity-title{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:12px;color:#172033}.activity-title strong{font-weight:800}.activity-title .action{font-size:9px;font-weight:800;letter-spacing:.04em;border-radius:999px;padding:4px 7px;background:#eff6ff;color:#2563eb}.activity-title .action.delete{background:#fef2f2;color:#dc2626}.activity-title .action.update{background:#fff7ed;color:#c2410c}.activity-meta{margin-top:4px;font-size:11px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.activity-time{font-size:10px;color:#94a3b8;white-space:nowrap}.activity-detail{grid-column:2/-1;margin-top:2px;padding:10px 12px;border-radius:10px;background:#f8fafc;border:1px solid #eef2f7;font-size:10px;color:#475569}.activity-detail-row{display:grid;grid-template-columns:145px 1fr;gap:8px;padding:4px 0}.activity-detail-row strong{color:#172033}.activity-toggle{border:0;background:none;color:#2563eb;font-size:10px;font-weight:800;cursor:pointer;padding:0}.activity-more{padding:16px 20px;text-align:center;border-top:1px solid #eef2f7}.activity-more button{border:1px solid #d8e0ea;border-radius:9px;background:#fff;padding:9px 16px;color:#2563eb;font-size:11px;font-weight:800;cursor:pointer}.activity-more button:hover{background:#f8fafc}.activity-empty{padding:42px 20px;text-align:center;color:#64748b}.activity-empty strong{display:block;color:#172033;margin-bottom:4px}@media(max-width:800px){.activity-toolbar{grid-template-columns:1fr 1fr}.activity-item{grid-template-columns:34px minmax(0,1fr)}.activity-time{grid-column:2}.activity-detail{grid-column:2}.activity-toolbar input{grid-column:1/-1}}@media(max-width:520px){.activity-toolbar{grid-template-columns:1fr}.activity-item{padding:14px}.activity-detail-row{grid-template-columns:1fr;gap:2px}}`}</style>
-    <section className="activity-hero"><div className="eyebrow">AUDIT TRAIL · OPERATIONS</div><h1>Activity Log</h1><p>Semua perubahan tetap direkam. Tampilan dibuat ringkas agar aktivitas berulang tidak memenuhi layar.</p></section>
+    <style>{`.activity-hero{padding:26px 28px;border:1px solid #dbe7f5;border-radius:20px;background:linear-gradient(135deg,#f8fbff,#fff);box-shadow:0 8px 28px rgba(15,23,42,.04)}.activity-hero .eyebrow{font-size:10px;font-weight:800;letter-spacing:.12em;color:#2563eb}.activity-hero h1{margin:7px 0 5px;font-size:27px;letter-spacing:-.03em;color:#172033}.activity-hero p{margin:0;color:#64748b;font-size:13px}.activity-toolbar{display:grid;grid-template-columns:1.4fr .7fr .9fr .9fr;gap:10px;margin:16px 0}.activity-toolbar input,.activity-toolbar select{height:42px;width:100%;border:1px solid #d8e0ea;border-radius:10px;background:#fff;padding:0 12px;color:#172033;font:600 12px Inter,Arial,sans-serif;outline:none}.activity-toolbar input:focus,.activity-toolbar select:focus{border-color:#60a5fa;box-shadow:0 0 0 3px rgba(37,99,235,.08)}.activity-card{overflow:hidden}.activity-head{display:flex;justify-content:space-between;align-items:center;padding:18px 20px;border-bottom:1px solid #eef2f7}.activity-head h2{margin:0;font-size:16px}.activity-head span{font-size:11px;color:#64748b}.activity-list{display:flex;flex-direction:column}.activity-item{display:grid;grid-template-columns:38px minmax(0,1fr) auto;gap:12px;padding:14px 20px;border-bottom:1px solid #f1f5f9}.activity-item:last-child{border-bottom:0}.activity-icon{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:#eff6ff;color:#2563eb;font-size:14px}.activity-main{min-width:0}.activity-title{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:12px;color:#172033}.activity-title strong{font-weight:800}.activity-title .action{font-size:9px;font-weight:800;letter-spacing:.04em;border-radius:999px;padding:4px 7px;background:#eff6ff;color:#2563eb}.activity-title .action.delete{background:#fef2f2;color:#dc2626}.activity-title .action.update{background:#fff7ed;color:#c2410c}.activity-meta{margin-top:4px;font-size:11px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.activity-time{font-size:10px;color:#94a3b8;white-space:nowrap}.activity-detail{grid-column:2/-1;margin-top:2px;padding:12px 14px;border-radius:12px;background:#f8fafc;border:1px solid #e7edf5;font-size:10px;color:#475569}.activity-detail-title{font-size:10px;font-weight:800;color:#172033;margin-bottom:7px;text-transform:uppercase;letter-spacing:.06em}.activity-detail-grid{display:grid;grid-template-columns:minmax(130px,.35fr) minmax(0,1fr);border-top:1px solid #e8eef5}.activity-detail-row{display:contents}.activity-detail-row strong,.activity-detail-row span{padding:7px 6px;border-bottom:1px solid #e8eef5}.activity-detail-row strong{color:#172033;font-weight:700}.activity-detail-row span{word-break:break-word}.activity-change{display:grid;grid-template-columns:145px 1fr;gap:8px;padding:6px 0;border-top:1px solid #e8eef5}.activity-change strong{color:#172033}.activity-before{color:#dc2626}.activity-after{color:#15803d;font-weight:700}.activity-toggle{border:0;background:none;color:#2563eb;font-size:10px;font-weight:800;cursor:pointer;padding:0}.activity-more{padding:16px 20px;text-align:center;border-top:1px solid #eef2f7}.activity-more button{border:1px solid #d8e0ea;border-radius:9px;background:#fff;padding:9px 16px;color:#2563eb;font-size:11px;font-weight:800;cursor:pointer}.activity-more button:hover{background:#f8fafc}.activity-empty{padding:42px 20px;text-align:center;color:#64748b}.activity-empty strong{display:block;color:#172033;margin-bottom:4px}@media(max-width:800px){.activity-toolbar{grid-template-columns:1fr 1fr}.activity-item{grid-template-columns:34px minmax(0,1fr)}.activity-time{grid-column:2}.activity-detail{grid-column:2}.activity-toolbar input{grid-column:1/-1}}@media(max-width:520px){.activity-toolbar{grid-template-columns:1fr}.activity-item{padding:14px}.activity-detail-grid,.activity-change{grid-template-columns:1fr;gap:0}.activity-detail-row strong,.activity-detail-row span{padding:5px 0}}`}</style>
+    <section className="activity-hero"><div className="eyebrow">AUDIT TRAIL · OPERATIONS</div><h1>Activity Log</h1><p>Semua perubahan tetap direkam. Superadmin dapat membuka detail data yang diinput atau diubah oleh pengguna.</p></section>
     <div className="activity-toolbar">
       <input placeholder="🔎 Cari aktivitas, MT, rombel, cabang…" value={search} onChange={(e) => { setSearch(e.target.value); setVisibleCount(PAGE_SIZE); }} />
       <select value={action} onChange={(e) => { setAction(e.target.value); setVisibleCount(PAGE_SIZE); }}><option value="all">Semua Aktivitas</option><option value="INSERT">Tambah</option><option value="UPDATE">Ubah</option><option value="DELETE">Hapus</option></select>
@@ -119,13 +182,23 @@ export default function ActivityLogPage() {
       <div className="activity-head"><h2>Riwayat Aktivitas</h2><span>{filtered.length} aktivitas · menampilkan {Math.min(visibleCount, filtered.length)} terbaru</span></div>
       <div className="activity-list">
         {loading ? <div className="activity-empty"><strong>Memuat aktivitas…</strong><span>Mohon tunggu sebentar.</span></div> : visibleRows.length === 0 ? <div className="activity-empty"><strong>Tidak ada aktivitas</strong><span>Coba ubah filter atau kata pencarian.</span></div> : visibleRows.map((row) => {
-          const changes = changedFields(row); const isOpen = expanded === row.id;
+          const changes = changedFields(row);
+          const isOpen = expanded === row.id;
+          const data = row.new_data || row.old_data;
           return <div className="activity-item" key={row.id}>
             <div className="activity-icon">{row.action === "INSERT" ? "＋" : row.action === "DELETE" ? "×" : "✎"}</div>
             <div className="activity-main">
               <div className="activity-title"><strong>{actorLabel(row)}</strong><span className={`action ${row.action.toLowerCase()}`}>{ACTION_LABELS[row.action]}</span><span>{TABLE_LABELS[row.table_name] || row.table_name}</span></div>
               <div className="activity-meta">{recordSummary(row, branches, mts, rombels, mapels)}{row.actor_role ? ` · ${row.actor_role}` : ""}</div>
-              {isOpen && <div className="activity-detail">{row.action === "UPDATE" && changes.length ? changes.map((change) => <div className="activity-detail-row" key={change.key}><strong>{change.key}</strong><span>{valueLabel(change.before)} → <b>{valueLabel(change.after)}</b></span></div>) : <div className="activity-detail-row"><strong>{row.action === "DELETE" ? "Data sebelum dihapus" : "Data"}</strong><span>{recordSummary(row, branches, mts, rombels, mapels)}</span></div>}</div>}
+              {isOpen && <div className="activity-detail">
+                {row.action === "UPDATE" && changes.length ? <>
+                  <div className="activity-detail-title">Perubahan Data</div>
+                  {changes.map((change) => <div className="activity-change" key={change.key}><strong>{fieldLabel(change.key)}</strong><span><span className="activity-before">{resolveValue(change.key, change.before, branches, mts, rombels, mapels)}</span> → <span className="activity-after">{resolveValue(change.key, change.after, branches, mts, rombels, mapels)}</span></span></div>)}
+                </> : <>
+                  <div className="activity-detail-title">{row.action === "DELETE" ? "Data sebelum dihapus" : "Data yang diinput"}</div>
+                  {detailEntries(data, row.table_name).length ? <div className="activity-detail-grid">{detailEntries(data, row.table_name).map(([key, value]) => <div className="activity-detail-row" key={key}><strong>{fieldLabel(key)}</strong><span>{resolveValue(key, value, branches, mts, rombels, mapels)}</span></div>)}</div> : <span>Detail data tidak tersedia pada audit log ini.</span>}
+                </>}
+              </div>}
             </div>
             <div className="activity-time"><div>{dateTimeLabel(row.changed_at)}</div><button className="activity-toggle" onClick={() => setExpanded(isOpen ? null : row.id)}>{isOpen ? "Tutup" : "Detail"}</button></div>
           </div>;
