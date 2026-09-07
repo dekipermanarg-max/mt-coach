@@ -1,0 +1,80 @@
+name: Deploy Final BAC Screenshot
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies
+        run: npm install
+      - name: Patch Monitoring UI
+        run: node scripts/patch-monitoring.js
+      - name: Patch WhatsApp Report Wording
+        run: node scripts/patch-wa-report.js
+      - name: Prepare WhatsApp Screenshot Patch
+        run: node scripts/patch-wa-screenshot-compat.js
+      - name: Patch WhatsApp Screenshot Report
+        run: node scripts/patch-wa-screenshot.js
+      - name: Apply Klinik PR Screenshot Rules
+        run: node scripts/patch-wa-screenshot-clinic-pr.js
+      - name: Finalize WhatsApp Screenshot UI
+        run: node scripts/patch-wa-screenshot-no-status-v2.js
+      - name: Apply BAC-branded Screenshot Design
+        run: node scripts/patch-wa-screenshot-design-v3.js
+      - name: Fix Screenshot Runtime Column Mapping
+        run: node scripts/patch-wa-screenshot-runtime-fix.js
+      - name: Refine BAC Logo and Screenshot Footer
+        run: node scripts/patch-wa-screenshot-logo-v4.js
+      - name: Patch Weekly Planning UI
+        run: node scripts/patch-planning.js
+      - name: Patch Weekly Planning Dropdowns
+        run: node scripts/patch-planning-dropdowns.js
+      - name: Patch Weekly AuVi Target
+        run: node scripts/patch-planning-weekly-target.js
+      - name: Patch Dashboard Branding
+        run: node scripts/patch-branding.js
+      - name: Patch WhatsApp Template Manager
+        run: node scripts/patch-data-whatsapp.js
+      - name: Patch WhatsApp Poster Download Button
+        run: node scripts/patch-wa-poster-button.js
+      - name: Build static site
+        run: npm run build
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./out
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
