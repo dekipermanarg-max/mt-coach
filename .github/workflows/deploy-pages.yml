@@ -36,6 +36,8 @@ jobs:
         run: node scripts/patch-wa-screenshot-compat.js
       - name: Patch WhatsApp Screenshot Report
         run: node scripts/patch-wa-screenshot.js
+      - name: Apply Klinik PR Screenshot Rules
+        run: node scripts/patch-wa-screenshot-clinic-pr.js
       - name: Finalize WhatsApp Screenshot UI
         run: node scripts/patch-wa-screenshot-no-status-v2.js
       - name: Patch Weekly Planning UI
