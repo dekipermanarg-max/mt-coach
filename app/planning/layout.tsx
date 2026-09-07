@@ -146,6 +146,96 @@ export default function PlanningLayout({ children }: { children: React.ReactNode
           box-shadow: none;
         }
 
+        /* Weekly Planning confirmation modal */
+        .modal-backdrop {
+          position: fixed;
+          inset: 0;
+          z-index: 9999;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 24px;
+          background: rgba(15, 23, 42, .58);
+          backdrop-filter: blur(5px);
+          -webkit-backdrop-filter: blur(5px);
+          animation: planningModalFade .18s ease-out;
+        }
+
+        .modal-card {
+          width: min(440px, 100%);
+          padding: 30px 30px 26px;
+          border: 1px solid rgba(226, 232, 240, .95);
+          border-radius: 20px;
+          background: #fff;
+          box-shadow: 0 24px 70px rgba(15, 23, 42, .22);
+          text-align: center;
+          animation: planningModalPop .2s ease-out;
+        }
+
+        .modal-icon {
+          width: 56px;
+          height: 56px;
+          margin: 0 auto 16px;
+          display: grid;
+          place-items: center;
+          border-radius: 16px;
+          background: #eff6ff;
+          color: #2563eb;
+          font-size: 25px;
+          box-shadow: inset 0 0 0 1px #dbeafe;
+        }
+
+        .modal-card h3 {
+          margin: 0;
+          color: #172033;
+          font-size: 20px;
+          line-height: 1.3;
+          letter-spacing: -.02em;
+        }
+
+        .modal-card p {
+          margin: 10px auto 22px;
+          max-width: 365px;
+          color: #64748b;
+          font-size: 13px;
+          line-height: 1.65;
+        }
+
+        .modal-card .finalize-btn {
+          width: 100%;
+          min-height: 44px;
+          border: 0;
+          border-radius: 11px;
+          background: #2563eb;
+          color: #fff;
+          font-size: 13px;
+          font-weight: 800;
+          cursor: pointer;
+          box-shadow: 0 6px 15px rgba(37, 99, 235, .20);
+          transition: background .15s ease, transform .15s ease, box-shadow .15s ease;
+        }
+
+        .modal-card .finalize-btn:hover {
+          background: #1d4ed8;
+          transform: translateY(-1px);
+          box-shadow: 0 8px 18px rgba(37, 99, 235, .25);
+        }
+
+        .modal-card .finalize-btn:focus-visible {
+          outline: 3px solid rgba(37, 99, 235, .22);
+          outline-offset: 2px;
+        }
+
+        @keyframes planningModalFade {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        @keyframes planningModalPop {
+          from { opacity: 0; transform: translateY(8px) scale(.97); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
         @media (max-width: 1000px) {
           .planning-form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
@@ -155,6 +245,7 @@ export default function PlanningLayout({ children }: { children: React.ReactNode
           .section-title { flex-direction: column; gap: 10px; }
           .planning-form-grid { grid-template-columns: 1fr; }
           .planning-options { flex-wrap: wrap; }
+          .modal-card { padding: 26px 20px 22px; border-radius: 18px; }
         }
       `}</style>
       {children}
