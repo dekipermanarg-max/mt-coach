@@ -34,8 +34,6 @@ jobs:
         run: node scripts/patch-wa-report.js
       - name: Patch WhatsApp Screenshot Report
         run: node scripts/patch-wa-screenshot.js
-      - name: Patch WhatsApp Screenshot Click Fix
-        run: node scripts/patch-wa-screenshot-fix.js
       - name: Patch Weekly Planning UI
         run: node scripts/patch-planning.js
       - name: Patch Weekly Planning Dropdowns
