@@ -48,6 +48,8 @@ jobs:
         run: node scripts/patch-planning-weekly-target.js
       - name: Patch Dashboard Branding
         run: node scripts/patch-branding.js
+      - name: Patch WhatsApp Template Manager
+        run: node scripts/patch-data-whatsapp.js
       - name: Build static site
         run: npm run build
       - name: Setup Pages
