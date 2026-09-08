@@ -17,17 +17,17 @@ function patchMonitoring() {
     const goal = kind === "auvi" ? targetAuviGoal : targetLdGoal;
     const count = kind === "auvi" ? targetAuviSessions : targetLdRombels;
     const lines = unique.length
-      ? unique.map((r, i) => `${i + 1}. ${nameOf(rombels, r.rombel_id)} — ${nameOf(mts, r.mt_id)} — ${nameOf(mapels, r.mapel_id)} — ${formatDate(r.planning_date)}`)
+      ? unique.map((r, i) => (i + 1) + ". " + nameOf(rombels, r.rombel_id) + " — " + nameOf(mts, r.mt_id) + " — " + nameOf(mapels, r.mapel_id) + " — " + formatDate(r.planning_date))
       : ["Belum ada assignment."];
-    window.alert([title, `${targetWeekStartStr} – ${targetWeekEndStr}`, `${count}/${goal} tercapai`, "", ...lines, "", `Sisa target: ${Math.max(0, goal - count)}`].join("\\n"));
+    window.alert([title, targetWeekStartStr + " – " + targetWeekEndStr, count + "/" + goal + " tercapai", "", ...lines, "", "Sisa target: " + Math.max(0, goal - count)].join("\\n"));
   }
 `;
   if (!s.includes("async function showTargetDetail(kind")) {
     if (!s.includes(marker)) throw new Error("Monitoring target click marker not found");
     s = s.replace(marker, marker + fn);
   }
-  s = s.replace(/<button type="button" className="card planning-kpi monitoring-target-kpi monitoring-auvi-kpi monitoring-target-click"[\s\S]*?<\/button>/, '<button type="button" className="card planning-kpi monitoring-target-kpi monitoring-auvi-kpi monitoring-target-click" onClick={() => showTargetDetail("auvi")} aria-label="Lihat detail assignment AuVi TV"><div className="kpi-label">Target AuVi TV</div><div className="kpi-value">{targetAuviSessions}/{targetAuviGoal}</div><div className="kpi-note">10 sesi per minggu · {auviProgress}%</div><span className="target-card-hint">Lihat detail ↗</span></button>');
-  s = s.replace(/<button type="button" className="card planning-kpi monitoring-target-kpi monitoring-ld-kpi monitoring-target-click"[\s\S]*?<\/button>/, '<button type="button" className="card planning-kpi monitoring-target-kpi monitoring-ld-kpi monitoring-target-click" onClick={() => showTargetDetail("ld")} aria-label="Lihat detail assignment LD"><div className="kpi-label">Target LD</div><div className="kpi-value">{targetLdRombels}/{targetLdGoal}</div><div className="kpi-note">50% rombel per minggu · {ldProgress}%</div><span className="target-card-hint">Lihat detail ↗</span></button>');
+  s = s.replace(/<button type="button" className="card planning-kpi monitoring-target-kpi monitoring-auvi-kpi monitoring-target-click"[\\s\\S]*?<\\/button>/, '<button type="button" className="card planning-kpi monitoring-target-kpi monitoring-auvi-kpi monitoring-target-click" onClick={() => showTargetDetail("auvi")} aria-label="Lihat detail assignment AuVi TV"><div className="kpi-label">Target AuVi TV</div><div className="kpi-value">{targetAuviSessions}/{targetAuviGoal}</div><div className="kpi-note">10 sesi per minggu · {auviProgress}%</div><span className="target-card-hint">Lihat detail ↗</span></button>');
+  s = s.replace(/<button type="button" className="card planning-kpi monitoring-target-kpi monitoring-ld-kpi monitoring-target-click"[\\s\\S]*?<\\/button>/, '<button type="button" className="card planning-kpi monitoring-target-kpi monitoring-ld-kpi monitoring-target-click" onClick={() => showTargetDetail("ld")} aria-label="Lihat detail assignment LD"><div className="kpi-label">Target LD</div><div className="kpi-value">{targetLdRombels}/{targetLdGoal}</div><div className="kpi-note">50% rombel per minggu · {ldProgress}%</div><span className="target-card-hint">Lihat detail ↗</span></button>');
   fs.writeFileSync(file, s);
   console.log("Patched Monitoring target cards with robust click details.");
 }
@@ -46,22 +46,28 @@ function patchPlanning() {
     start.setDate(base.getDate() + diff);
     const end = new Date(start);
     end.setDate(start.getDate() + 6);
-    const { data } = await supabase.from("weekly_planning").select("id,planning_date,auvi_tv,ld,mt_id,rombel_id,mapel_id").eq("branch_id", branchId).gte("planning_date", start.toISOString().slice(0, 10)).lte("planning_date", end.toISOString().slice(0, 10));
+    const startStr = start.toISOString().slice(0, 10);
+    const endStr = end.toISOString().slice(0, 10);
+    const { data } = await supabase.from("weekly_planning").select("id,planning_date,auvi_tv,ld,mt_id,rombel_id,mapel_id").eq("branch_id", branchId).gte("planning_date", startStr).lte("planning_date", endStr);
     const rows = (data || []) as PlanningRow[];
-    const assigned = kind === "auvi" ? rows.filter(r => r.auvi_tv) : rows.filter(r => r.ld && r.rombel_id && !/(^|\\s)(kelas\\s*)?(12|xii)(\\s|$)/i.test(nameOf(rombelRows, r.rombel_id)));
+    const assigned = kind === "auvi"
+      ? rows.filter(r => r.auvi_tv)
+      : rows.filter(r => r.ld && r.rombel_id && !/(^|\\s)(kelas\\s*)?(12|xii)(\\s|$)/i.test(nameOf(rombelRows, r.rombel_id)));
     const unique = kind === "ld" ? Array.from(new Map(assigned.map(r => [r.rombel_id!, r])).values()) : assigned;
     const goal = kind === "auvi" ? 10 : (weeklyRombelPopulation ? Math.ceil(weeklyRombelPopulation * 0.5) : 0);
     const title = kind === "auvi" ? "🎥 DETAIL TARGET AuVi TV" : "👥 DETAIL TARGET LD";
-    const lines = unique.length ? unique.map((r, i) => `${i + 1}. ${nameOf(rombelRows, r.rombel_id)} — ${nameOf(mtRows, r.mt_id)} — ${nameOf(mapelRows, r.mapel_id)} — ${formatDate(r.planning_date)}`) : ["Belum ada assignment."];
-    window.alert([title, `${start.toISOString().slice(0, 10)} – ${end.toISOString().slice(0, 10)}`, `${unique.length}/${goal} tercapai`, "", ...lines, "", `Sisa target: ${Math.max(0, goal - unique.length)}`].join("\\n"));
+    const lines = unique.length
+      ? unique.map((r, i) => (i + 1) + ". " + nameOf(rombelRows, r.rombel_id) + " — " + nameOf(mtRows, r.mt_id) + " — " + nameOf(mapelRows, r.mapel_id) + " — " + formatDate(r.planning_date))
+      : ["Belum ada assignment."];
+    window.alert([title, startStr + " – " + endStr, unique.length + "/" + goal + " tercapai", "", ...lines, "", "Sisa target: " + Math.max(0, goal - unique.length)].join("\\n"));
   }
 `;
   if (!s.includes("async function showTargetDetail(kind")) {
     if (!s.includes(marker)) throw new Error("Planning target click marker not found");
     s = s.replace(marker, fn + marker);
   }
-  s = s.replace(/<button type="button" className="card planning-kpi monitoring-target-click monitoring-auvi-kpi"[\s\S]*?<\/button>/, '<button type="button" className="card planning-kpi monitoring-target-click monitoring-auvi-kpi" onClick={() => showTargetDetail("auvi")} aria-label="Lihat detail assignment AuVi TV"><div className="planning-kpi-top"><div className="kpi-label">AuVi TV Mingguan</div><div className="kpi-mini-icon">🎥</div></div><div className="kpi-value">{Math.min(100, Math.round((weeklyAuviSessions / 10) * 100))}%</div><div className="kpi-note">{weeklyAuviSessions}/10 sesi tercapai · target 10 sesi per minggu</div><span className="target-card-hint">Lihat detail ↗</span></button>');
-  s = s.replace(/<button type="button" className="card planning-kpi monitoring-target-kpi monitoring-ld-kpi monitoring-target-click"[\s\S]*?<\/button>/, '<button type="button" className="card planning-kpi monitoring-target-kpi monitoring-ld-kpi monitoring-target-click" onClick={() => showTargetDetail("ld")} aria-label="Lihat detail assignment LD"><div className="planning-kpi-top"><div className="kpi-label">LD Mingguan</div><div className="kpi-mini-icon">👥</div></div><div className="kpi-value">{weeklyLdRombels}/{weeklyRombelPopulation ? Math.ceil(weeklyRombelPopulation * 0.5) : 0}</div><div className="kpi-note">Target 50% rombel per minggu</div><span className="target-card-hint">Lihat detail ↗</span></button>');
+  s = s.replace(/<button type="button" className="card planning-kpi monitoring-target-click monitoring-auvi-kpi"[\\s\\S]*?<\\/button>/, '<button type="button" className="card planning-kpi monitoring-target-click monitoring-auvi-kpi" onClick={() => showTargetDetail("auvi")} aria-label="Lihat detail assignment AuVi TV"><div className="planning-kpi-top"><div className="kpi-label">AuVi TV Mingguan</div><div className="kpi-mini-icon">🎥</div></div><div className="kpi-value">{Math.min(100, Math.round((weeklyAuviSessions / 10) * 100))}%</div><div className="kpi-note">{weeklyAuviSessions}/10 sesi tercapai · target 10 sesi per minggu</div><span className="target-card-hint">Lihat detail ↗</span></button>');
+  s = s.replace(/<button type="button" className="card planning-kpi monitoring-target-kpi monitoring-ld-kpi monitoring-target-click"[\\s\\S]*?<\\/button>/, '<button type="button" className="card planning-kpi monitoring-target-kpi monitoring-ld-kpi monitoring-target-click" onClick={() => showTargetDetail("ld")} aria-label="Lihat detail assignment LD"><div className="planning-kpi-top"><div className="kpi-label">LD Mingguan</div><div className="kpi-mini-icon">👥</div></div><div className="kpi-value">{weeklyLdRombels}/{weeklyRombelPopulation ? Math.ceil(weeklyRombelPopulation * 0.5) : 0}</div><div className="kpi-note">Target 50% rombel per minggu</div><span className="target-card-hint">Lihat detail ↗</span></button>');
   if (!s.includes(".target-card-hint")) {
     const root = '<style>{`';
     if (s.includes(root)) s = s.replace(root, root + '.monitoring-target-click{position:relative;text-align:left;cursor:pointer;border:0;width:100%;transition:transform .16s ease,box-shadow .16s ease}.monitoring-target-click:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(15,23,42,.08)}.target-card-hint{display:block;margin-top:7px;font-size:11px;color:#64748b;font-weight:700}');
