@@ -26,10 +26,28 @@ jobs:
           PY
       - name: Correct WhatsApp report patch
         run: |
-          echo 'ZnJvbSBwYXRobGliIGltcG9ydCBQYXRoCnA9UGF0aCgnYXBwL21vbml0b3JpbmcvcGFnZS50c3gnKQpzPXAucmVhZF90ZXh0KCkKcz1zLnJlcGxhY2UoJ2lmICghYnlNdC5oYXMobmV5KSknLCAnaWYgKCFieU10LmhhcyhrZXkpKScpCnM9cy5yZXBsYWNlKCduYW1lT2YodHMsIGFbMF0pJywgJ25hbWVPZihtdHMsIGFbMF0pJykKcz1zLnJlcGxhY2UoJ1RlcmltYSBrYXNpLCB0ZW1hbi10ZW1hbiBNVC4nLCAnVGVyaW1hIGthc2loLCB0ZW1hbi10ZW1hbiBNVC4nKQpzPXMucmVwbGFjZSgn4p2gICoqTW9ob24gc2VnZXJhIGxlbmdrYXBpIGFkbWluaXN0cmFzaSBzZXNpIGJlcmlrdXQ6KionLCAn4pqg77iPICpNb2hvbiBzZWdlcmEgbGVuZ2thcGkgYWRtaW5pc3RyYXNpIHNlc2kgYmVyaWt1dDoqJykKcz1zLnJlcGxhY2UoJ/Cfj48gKll1aywgc2VnZXJhIGRpbGVuZ2thcGkgYWdhciBhZG1pbmlzdHJhc2kgc2VzaSB0ZXJjYXRhdCBsZW5na2FwLionLCAn8J+ZjyAqWXVrLCBzZWdlcmEgZGlsZW5na2FwaSBhZ2FyIGFkbWluaXN0cmFzaSBzZXNpIHRlcmNhdGF0IGxlbmdrYXAuKicpCnAud3JpdGVfdGV4dChzKQo=' | base64 -d | python
+          echo 'ZnJvbSBwYXRobGliIGltcG9ydCBQYXRoCnA9UGF0aCgnYXBwL21vbml0b3JpbmcvcGFnZS50c3gnKQpzPXAucmVhZF90ZXh0KCkKcz1zLnJlcGxhY2UoJ2lmICghYnlNdC5oYXMobmV5KSknLCAnaWYgKCFieU10LmhhcyhrZXkpKScpCnM9cy5yZXBsYWNlKCduYW1lT2YodHMsIGFbMF0pJywgJ25hbWVPZihycywgYVswXSkpJykKcz1zLnJlcGxhY2UoJ1RlcmltYSBrYXNpLCB0ZW1hbi10ZW1hbiBNVC4nLCAnVGVyaW1hIGthc2loLCB0ZW1hbi10ZW1hbiBNVC4nKQpzPXMucmVwbGFjZSgn4p2gICoqTW9ob24gc2VnZXJhIGxlbmdrYXBpIGFkbWluaXN0cmFzaSBzZXNpIGJlcmlrdXQ6KionLCAn4pqg77iPICpNb2hvbiBzZWdlcmEgbGVuZ2thcGkgYWRtaW5pc3RyYXNpIHNlc2kgYmVyaWt1dDoqJykKcz1zLnJlcGxhY2UoJ/Cfj48gKll1aywgc2VnZXJhIGRpbGVuZ2thcGkgYWdhciBhZG1pbmlzdHJhc2kgc2VzaSB0ZXJjYXRhdCBsZW5na2FwLionLCAn8J+ZjyAqWXVrLCBzZWdlcmEgZGlsZW5na2FwaSBhZ2FyIGFkbWluaXN0cmFzaSBzZXNpIHRlcmNhdGF0IGxlbmdrYXAuKicpCnAud3JpdGVfdGV4dChzKQo=' | base64 -d | python
+      - name: Enforce Monitoring input order
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('app/monitoring/page.tsx')
+          s = p.read_text()
+          old = '''  const filtered = useMemo(() => rows.filter(r =>
+            (!startDate || r.planning_date >= startDate) && (!endDate || r.planning_date <= endDate) &&
+            (branchId === "all" || r.branch_id === branchId) && (selectedMT === "all" || r.mt_id === selectedMT) &&
+            `${nameOf(mts, r.mt_id)} ${nameOf(rombels, r.rombel_id)} ${nameOf(mapels, r.mapel_id)} ${r.jenis_sesi}`.toLowerCase().includes(search.toLowerCase())
+          ), [rows, mts, rombels, mapels, branchId, selectedMT, startDate, endDate, search]);'''
+          new = '''  const filtered = useMemo(() => rows.filter(r =>
+            (!startDate || r.planning_date >= startDate) && (!endDate || r.planning_date <= endDate) &&
+            (branchId === "all" || r.branch_id === branchId) && (selectedMT === "all" || r.mt_id === selectedMT) &&
+            `${nameOf(mts, r.mt_id)} ${nameOf(rombels, r.rombel_id)} ${nameOf(mapels, r.mapel_id)} ${r.jenis_sesi}`.toLowerCase().includes(search.toLowerCase())
+          ).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()), [rows, mts, rombels, mapels, branchId, selectedMT, startDate, endDate, search]);'''
+          if old in s: p.write_text(s.replace(old, new, 1))
+          PY
       - name: Commit fix
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add app/planning/page.tsx app/monitoring/page.tsx
-          if git diff --cached --quiet; then echo 'No changes to commit.'; else git commit -m 'Correct WhatsApp admin report'; git push; fi
+          if git diff --cached --quiet; then echo 'No changes to commit.'; else git commit -m 'Correct Weekly Planning and Monitoring order'; git push; fi
