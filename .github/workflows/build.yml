@@ -11,6 +11,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Patch Monitoring Topik checkbox
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('app/monitoring/page.tsx')
+          s = p.read_text(encoding='utf-8')
+          s = s.replace('["topik_sub_topik_done", "Topik/Subtopik"], ', '', 1)
+          old = '<div className="monitoring-admin-grid">{checkboxItems.filter(([key]) => !simple || key === "attendance").map(([key, label]) => <label key={key} className={`admin-item ${row[key] ? "done" : "todo"}`}><input type="checkbox" checked={row[key]} disabled={saving === row.id} onChange={e => saveRow(row, { [key]: e.target.checked })} /><span>{label}</span><b>{row[key] ? "✓" : "—"}</b></label>)}'
+          new = '<div className="monitoring-admin-grid">{!simple && <label className={`admin-item ${row.topik_sub_topik_done ? "done" : "todo"}`}><input type="checkbox" checked={Boolean(row.topik_sub_topik_done)} disabled={saving === row.id} onChange={e => saveRow(row, { topik_sub_topik_done: e.target.checked })} /><span>Topik/Subtopik</span><b>{row.topik_sub_topik_done ? "✓" : "—"}</b></label>}{checkboxItems.filter(([key]) => !simple || key === "attendance").map(([key, label]) => <label key={key} className={`admin-item ${row[key] ? "done" : "todo"}`}><input type="checkbox" checked={row[key]} disabled={saving === row.id} onChange={e => saveRow(row, { [key]: e.target.checked })} /><span>{label}</span><b>{row[key] ? "✓" : "—"}</b></label>)}'
+          if old in s:
+              s = s.replace(old, new, 1)
+          p.write_text(s, encoding='utf-8')
       - uses: actions/setup-node@v4
         with:
           node-version: 20
