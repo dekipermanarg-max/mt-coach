@@ -30,6 +30,8 @@ jobs:
         run: npm install
       - name: Patch Monitoring UI
         run: node scripts/patch-monitoring.js
+      - name: Guarantee Monitoring Topik Checkbox
+        run: node scripts/patch-monitoring-topik-checkbox.js
       - name: Differentiate Monitoring Session Types
         run: node scripts/patch-monitoring-session-type-colors.js
       - name: Show Monitoring Weekly Targets
@@ -50,7 +52,7 @@ jobs:
         run: node scripts/patch-wa-screenshot-runtime-fix.js
       - name: Refine BAC Logo and Screenshot Footer
         run: node scripts/patch-wa-screenshot-logo-v4.js
-      - name: Apply Exact Supplied BAC Logo
+      - name: Apply Exact BAC Logo
         run: node scripts/patch-wa-screenshot-exact-logo-v2.js
       - name: Fix Exact BAC Logo Runtime Asset
         run: node scripts/patch-wa-screenshot-exact-logo-runtime-fix.js
