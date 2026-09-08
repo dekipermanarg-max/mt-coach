@@ -4,7 +4,6 @@ const path = require("path");
 const file = path.join(process.cwd(), "app/planning/page.tsx");
 let s = fs.readFileSync(file, "utf8");
 
-// Date and branch are intentionally blank on first load. Build the week range only when a date exists.
 const marker = '  const selectedDateLabel = date ? formatDate(date) : "";';
 const rangeAdd = `  const weekStartStr = date ? (() => {
     const base = new Date(date + "T00:00:00");
@@ -33,8 +32,7 @@ if (!s.includes("const weeklyRangeLabel")) {
   s = s.replace(marker, rangeAdd + "\n" + marker);
 }
 
-// Replace the date control by locating the control-box that contains the known label.
-// This avoids brittle whitespace/formatting assumptions after other planning patches run.
+// Always replace the date control from the clean source with an explicit weekly-period control.
 if (!s.includes("Periode Planning (Mingguan)")) {
   const labelIndex = s.indexOf('<span className="control-label">Tanggal Planning</span>');
   if (labelIndex < 0) throw new Error("Weekly date control label not found");
@@ -48,23 +46,22 @@ if (!s.includes("Periode Planning (Mingguan)")) {
             <div className="date-icon">📅</div>
             <input className="date-input" type="date" value={date} onChange={(e) => setDate(e.target.value)} aria-label="Pilih tanggal dalam minggu planning" />
           </div>
-          {date && <div className="date-caption"><strong>{weeklyRangeLabel}</strong></div>}
+          {date && <div className="date-caption"><strong>Rentang Minggu: {weeklyRangeLabel}</strong></div>}
         </div>`;
   const controlEndExclusive = controlEnd + controlEndMarker.indexOf('\n      </section>');
   s = s.slice(0, controlStart) + newDateBlock + s.slice(controlEndExclusive);
 }
 
-// Make list/save/finalize operate on the whole Monday-Sunday period.
+// Keep all weekly operations on Monday-Sunday.
 s = s.replaceAll(
   '.eq("planning_date", date)',
   '.gte("planning_date", weekStartStr)\n      .lte("planning_date", weekEndStr)'
 );
 
-// Never query planning with a blank date on the initial screen.
 const loadSessionsGuard = '    const id = await resolveBranchId();\n';
 if (s.includes(loadSessionsGuard) && !s.includes('    if (!date) {\n      setSessions([]);\n      setLoading(false);\n      return;\n    }')) {
   s = s.replace(loadSessionsGuard, loadSessionsGuard + '    if (!date) {\n      setSessions([]);\n      setLoading(false);\n      return;\n    }\n');
 }
 
 fs.writeFileSync(file, s);
-console.log("Patched Weekly Planning with a safe Monday-Sunday date range.");
+console.log("Patched Weekly Planning with visible Monday-Sunday range.");
