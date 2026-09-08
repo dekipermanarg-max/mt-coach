@@ -1,0 +1,45 @@
+name: Fix Monitoring Order
+
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-monitoring-order.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enforce created_at order at render layer
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('app/monitoring/page.tsx')
+          s = p.read_text()
+          old = '''  const filtered = useMemo(() => rows.filter(r =>
+    (!startDate || r.planning_date >= startDate) && (!endDate || r.planning_date <= endDate) &&
+    (branchId === "all" || r.branch_id === branchId) && (selectedMT === "all" || r.mt_id === selectedMT) &&
+    `${nameOf(mts, r.mt_id)} ${nameOf(rombels, r.rombel_id)} ${nameOf(mapels, r.mapel_id)} ${r.jenis_sesi}`.toLowerCase().includes(search.toLowerCase())
+  ), [rows, mts, rombels, mapels, branchId, selectedMT, startDate, endDate, search]);'''
+          new = '''  const filtered = useMemo(() => rows.filter(r =>
+    (!startDate || r.planning_date >= startDate) && (!endDate || r.planning_date <= endDate) &&
+    (branchId === "all" || r.branch_id === branchId) && (selectedMT === "all" || r.mt_id === selectedMT) &&
+    `${nameOf(mts, r.mt_id)} ${nameOf(rombels, r.rombel_id)} ${nameOf(mapels, r.mapel_id)} ${r.jenis_sesi}`.toLowerCase().includes(search.toLowerCase())
+  ).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()), [rows, mts, rombels, mapels, branchId, selectedMT, startDate, endDate, search]);'''
+          if old not in s:
+              raise SystemExit('Target Monitoring filtered block not found')
+          p.write_text(s.replace(old, new, 1))
+
+      - name: Commit fix and remove one-shot workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/monitoring/page.tsx .github/workflows/fix-monitoring-order.yml
+          git commit -m "fix: preserve weekly planning input order in monitoring"
+          git rm .github/workflows/fix-monitoring-order.yml
+          git commit -m "chore: remove one-shot monitoring fix workflow"
+          git push
