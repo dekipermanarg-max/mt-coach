@@ -12,7 +12,7 @@ if (!s.includes('const [targetDetail, setTargetDetail]')) {
   s = s.replace(stateNeedle, stateNeedle + stateAdd);
 }
 
-const effectNeedle = '  const selectedDateLabel = formatDate(date);';
+const effectNeedle = /  const selectedDateLabel = [^\n]+;/;
 const effectAdd = `  useEffect(() => {
     let cancelled = false;
     async function loadTargetDetailRows() {
@@ -37,7 +37,7 @@ const effectAdd = `  useEffect(() => {
 
   const isClass12Rombel = (id: string | null) => {
     const label = nameOf(rombelRows, id);
-    return /(^|\s)(kelas\s*)?(12|xii)(\s|$)/i.test(label);
+    return /(^|\\s)(kelas\\s*)?(12|xii)(\\s|$)/i.test(label);
   };
   const targetAuviDetailRows = weeklyTargetRows.filter(x => x.auvi_tv);
   const targetLdDetailRows = weeklyTargetRows.filter(x => x.ld && x.rombel_id && !isClass12Rombel(x.rombel_id));
@@ -45,8 +45,8 @@ const effectAdd = `  useEffect(() => {
 
 `;
 if (!s.includes('loadTargetDetailRows')) {
-  if (!s.includes(effectNeedle)) throw new Error("Planning detail effect marker not found");
-  s = s.replace(effectNeedle, effectAdd + effectNeedle);
+  if (!effectNeedle.test(s)) throw new Error("Planning detail effect marker not found");
+  s = s.replace(effectNeedle, effectAdd + s.match(effectNeedle)[0]);
 }
 
 const auviCard = '<div className="card planning-kpi"><div className="planning-kpi-top"><div className="kpi-label">AuVi TV Mingguan</div><div className="kpi-mini-icon">🎥</div></div><div className="kpi-value">{Math.min(100, Math.round((weeklyAuviSessions / 10) * 100))}%</div><div className="kpi-note">{weeklyAuviSessions}/10 sesi tercapai · target 10 sesi per minggu</div></div>';
