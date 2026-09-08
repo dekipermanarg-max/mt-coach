@@ -32,24 +32,23 @@ if (!s.includes("const weeklyRangeLabel")) {
   s = s.replace(marker, rangeAdd + "\n" + marker);
 }
 
-// Always replace the date control from the clean source with an explicit weekly-period control.
-if (!s.includes("Periode Planning (Mingguan)")) {
+// Match the Monitoring look: three cards for branch, start date, and end date.
+if (!s.includes("weekly-range-layout")) {
   const labelIndex = s.indexOf('<span className="control-label">Tanggal Planning</span>');
   if (labelIndex < 0) throw new Error("Weekly date control label not found");
   const controlStart = s.lastIndexOf('        <div className="control-box">', labelIndex);
   const controlEndMarker = '\n        </div>\n      </section>';
   const controlEnd = s.indexOf(controlEndMarker, labelIndex);
   if (controlStart < 0 || controlEnd < 0) throw new Error("Weekly date control container not found");
-  const newDateBlock = `        <div className="control-box">
-          <span className="control-label">Periode Planning (Mingguan)</span>
-          <div className="date-control">
-            <div className="date-icon">📅</div>
-            <input className="date-input" type="date" value={date} onChange={(e) => setDate(e.target.value)} aria-label="Pilih tanggal dalam minggu planning" />
-          </div>
-          {date && <div className="date-caption"><strong>Rentang Minggu: {weeklyRangeLabel}</strong></div>}
-        </div>`;
-  const controlEndExclusive = controlEnd + controlEndMarker.indexOf('\n      </section>');
-  s = s.slice(0, controlStart) + newDateBlock + s.slice(controlEndExclusive);
+
+  const newDateBlock = `        <style>{\`\n          .weekly-range-layout { grid-template-columns: 1fr 1fr 1fr !important; }\n          .weekly-range-layout .date-input { width: 100%; }\n          .weekly-range-layout .date-input[readonly] { cursor: default; }\n          @media (max-width: 1000px) { .weekly-range-layout { grid-template-columns: 1fr !important; } }\n        \`}</style>\n        <div className="control-box">\n          <span className="control-label">Cabang</span>\n          <select className="branch-select" value={branch} onChange={(e) => setBranch(e.target.value)}>\n            {BRANCHES.map((item) => <option key={item}>{item}</option>)}\n          </select>\n        </div>\n        <div className="control-box">\n          <span className="control-label">Tanggal Awal</span>\n          <div className="date-control">\n            <div className="date-icon">📅</div>\n            <input className="date-input" type="date" value={weekStartStr || date} onChange={(e) => setDate(e.target.value)} aria-label="Pilih tanggal awal minggu planning" />\n          </div>\n        </div>\n        <div className="control-box">\n          <span className="control-label">Tanggal Akhir</span>\n          <div className="date-control">\n            <div className="date-icon">📅</div>\n            <input className="date-input" type="date" value={weekEndStr} readOnly aria-label="Tanggal akhir minggu planning" />\n          </div>\n        </div>`;
+
+  const sectionStart = s.lastIndexOf('      <section className="planning-control-card">', labelIndex);
+  if (sectionStart < 0) throw new Error("Weekly planning control section not found");
+  const sectionEnd = s.indexOf('      </section>', controlEnd);
+  if (sectionEnd < 0) throw new Error("Weekly planning control section end not found");
+  const replacement = `      <section className="planning-control-card weekly-range-layout">\n${newDateBlock}\n`;
+  s = s.slice(0, sectionStart) + replacement + s.slice(sectionEnd + '      </section>'.length);
 }
 
 // Keep all weekly operations on Monday-Sunday.
@@ -64,4 +63,4 @@ if (s.includes(loadSessionsGuard) && !s.includes('    if (!date) {\n      setSes
 }
 
 fs.writeFileSync(file, s);
-console.log("Patched Weekly Planning with visible Monday-Sunday range.");
+console.log("Patched Weekly Planning with Monitoring-style start/end date cards.");
