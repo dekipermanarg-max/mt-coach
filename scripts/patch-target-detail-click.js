@@ -36,13 +36,13 @@ function patchMonitoring() {
     '    const lines = unique.length',
     '      ? unique.map((r, i) => (i + 1) + ". " + nameOf(rombels, r.rombel_id) + " — " + nameOf(mts, r.mt_id) + " — " + nameOf(mapels, r.mapel_id) + " — " + formatDate(r.planning_date))',
     '      : ["Belum ada assignment."];',
-    '    window.alert([title, targetWeekStartStr + " – " + targetWeekEndStr, count + "/" + goal + " tercapai", "", ...lines, "", "Sisa target: " + Math.max(0, goal - count)].join("\\n"));',
+    '    window.alert([title, targetWeekStartStr + " – " + targetWeekEndStr, count + "/" + goal + " tercapai", "", ...lines, "", "Sisa target: " + Math.max(0, goal - count)].join("\n"));',
     '  }',
     ''
-  ].join("\\n");
+  ].join("\n");
   if (!s.includes("async function showTargetDetail(kind")) {
     if (!s.includes(marker)) throw new Error("Monitoring target click marker not found");
-    s = s.replace(marker, marker + "\\n" + fn);
+    s = s.replace(marker, marker + "\n" + fn);
   }
   s = addClickToCard(s, "Target AuVi TV", 'showTargetDetail("auvi")', "Lihat detail assignment AuVi TV");
   s = addClickToCard(s, "Target LD", 'showTargetDetail("ld")', "Lihat detail assignment LD");
@@ -77,10 +77,10 @@ function patchPlanning() {
     '    const lines = unique.length',
     '      ? unique.map((r, i) => (i + 1) + ". " + nameOf(rombelRows, r.rombel_id) + " — " + nameOf(mtRows, r.mt_id) + " — " + nameOf(mapelRows, r.mapel_id) + " — " + formatDate(r.planning_date))',
     '      : ["Belum ada assignment."];',
-    '    window.alert([title, startStr + " – " + endStr, unique.length + "/" + goal + " tercapai", "", ...lines, "", "Sisa target: " + Math.max(0, goal - unique.length)].join("\\n"));',
+    '    window.alert([title, startStr + " – " + endStr, unique.length + "/" + goal + " tercapai", "", ...lines, "", "Sisa target: " + Math.max(0, goal - unique.length)].join("\n"));',
     '  }',
     ''
-  ].join("\\n");
+  ].join("\n");
   if (!s.includes("async function showTargetDetail(kind")) {
     if (!s.includes(marker)) throw new Error("Planning target click marker not found");
     s = s.replace(marker, fn + marker);
