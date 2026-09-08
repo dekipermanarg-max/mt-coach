@@ -62,8 +62,8 @@ jobs:
         run: node scripts/patch-planning-dropdowns.js
       - name: Patch Weekly AuVi Target
         run: node scripts/patch-planning-weekly-target.js
-      - name: Finalize Target Detail Patches
-        run: node scripts/patch-target-details-final-fix.js
+      - name: Patch Target Detail Clicks
+        run: node scripts/patch-target-detail-click.js
       - name: Patch Dashboard Branding
         run: node scripts/patch-branding.js
       - name: Patch WhatsApp Template Manager
