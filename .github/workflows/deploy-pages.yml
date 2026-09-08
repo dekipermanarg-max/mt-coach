@@ -66,6 +66,8 @@ jobs:
         run: node scripts/patch-planning-weekly-target.js
       - name: Add Weekly Planning Target Assignment Details
         run: node scripts/patch-planning-target-details.js
+      - name: Finalize Target Detail Patches
+        run: node scripts/patch-target-details-final-fix.js
       - name: Patch Dashboard Branding
         run: node scripts/patch-branding.js
       - name: Patch WhatsApp Template Manager
