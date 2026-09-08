@@ -14,37 +14,32 @@ function addCss(s) {
 
 function insertBeforeRootClose(s, jsx) {
   if (s.includes('target-modal-backdrop')) return s;
-  const marker = '\n    </div>\n  );\n}';
-  const idx = s.lastIndexOf(marker);
-  if (idx < 0) throw new Error('Page root-close marker not found');
-  return s.slice(0, idx) + '\n' + jsx + s.slice(idx);
+  const returnIdx = s.lastIndexOf('\n  );');
+  if (returnIdx < 0) throw new Error('Page return marker not found');
+  const rootCloseIdx = s.lastIndexOf('</div>', returnIdx);
+  if (rootCloseIdx < 0) throw new Error('Page root closing div not found');
+  return s.slice(0, rootCloseIdx) + '\n' + jsx + '\n' + s.slice(rootCloseIdx);
 }
 
 function patchMonitoring() {
   const file = path.join(process.cwd(), 'app/monitoring/page.tsx');
   let s = fs.readFileSync(file, 'utf8');
-
   const stateNeedle = '  const [waDate, setWaDate] = useState(() => new Date().toISOString().slice(0, 10));';
   if (!s.includes('const [targetDetail, setTargetDetail]')) {
     if (!s.includes(stateNeedle)) throw new Error('Monitoring target state marker not found');
     s = s.replace(stateNeedle, stateNeedle + '\n  const [targetDetail, setTargetDetail] = useState<"auvi" | "ld" | null>(null);');
   }
-
   const helperNeedle = '  const ldProgress = targetLdGoal ? Math.min(100, Math.round((targetLdRombels / targetLdGoal) * 100)) : 0;';
   if (!s.includes('const targetAuviDetailRows')) {
     if (!s.includes(helperNeedle)) throw new Error('Monitoring target helper marker not found');
-    const helpers = `\n  const isClass12Rombel = (id: string | null) => {\n    const label = nameOf(rombels, id);\n    return /(^|\\s)(kelas\\s*)?(12|xii)(\\s|$)/i.test(label);\n  };\n  const targetAuviDetailRows = targetWeekRows.filter(r => r.auvi_tv);\n  const targetLdDetailRows = targetWeekRows.filter(r => r.ld && r.rombel_id && !isClass12Rombel(r.rombel_id));\n  const targetLdDetailRombels = Array.from(new Map(targetLdDetailRows.map(r => [r.rombel_id!, r])).values());`;
-    s = s.replace(helperNeedle, helperNeedle + helpers);
+    s = s.replace(helperNeedle, helperNeedle + `\n  const isClass12Rombel = (id: string | null) => {\n    const label = nameOf(rombels, id);\n    return /(^|\\s)(kelas\\s*)?(12|xii)(\\s|$)/i.test(label);\n  };\n  const targetAuviDetailRows = targetWeekRows.filter(r => r.auvi_tv);\n  const targetLdDetailRows = targetWeekRows.filter(r => r.ld && r.rombel_id && !isClass12Rombel(r.rombel_id));\n  const targetLdDetailRombels = Array.from(new Map(targetLdDetailRows.map(r => [r.rombel_id!, r])).values());`);
   }
-
   const auviOld = '<div className="card planning-kpi monitoring-target-kpi monitoring-auvi-kpi"><div className="kpi-label">Target AuVi TV</div><div className="kpi-value">{targetAuviSessions}/{targetAuviGoal}</div><div className="kpi-note">10 sesi per minggu · {auviProgress}%</div></div>';
   const auviNew = '<button type="button" className="card planning-kpi monitoring-target-kpi monitoring-auvi-kpi monitoring-target-click" onClick={() => setTargetDetail("auvi")} aria-label="Lihat detail assignment AuVi TV"><div className="kpi-label">Target AuVi TV</div><div className="kpi-value">{targetAuviSessions}/{targetAuviGoal}</div><div className="kpi-note">10 sesi per minggu · {auviProgress}%</div><span className="target-card-hint">Lihat detail ↗</span></button>';
   if (s.includes(auviOld)) s = s.replace(auviOld, auviNew);
-
   const ldOld = '<div className="card planning-kpi monitoring-target-kpi monitoring-ld-kpi"><div className="kpi-label">Target LD</div><div className="kpi-value">{targetLdRombels}/{targetLdGoal}</div><div className="kpi-note">50% rombel per minggu · {ldProgress}%</div></div>';
   const ldNew = '<button type="button" className="card planning-kpi monitoring-target-kpi monitoring-ld-kpi monitoring-target-click" onClick={() => setTargetDetail("ld")} aria-label="Lihat detail assignment LD"><div className="kpi-label">Target LD</div><div className="kpi-value">{targetLdRombels}/{targetLdGoal}</div><div className="kpi-note">50% rombel per minggu · {ldProgress}%</div><span className="target-card-hint">Lihat detail ↗</span></button>';
   if (s.includes(ldOld)) s = s.replace(ldOld, ldNew);
-
   const modal = `    {targetDetail && <div className="target-modal-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) setTargetDetail(null); }}><section className="target-modal" role="dialog" aria-modal="true" aria-labelledby="monitoring-target-title"><div className="target-modal-head"><div><div className="eyebrow">MONITORING · ASSIGNMENT</div><h2 id="monitoring-target-title">{targetDetail === "auvi" ? "🎥 AuVi TV Assignment" : "👥 LD Assignment"}</h2><p>{targetWeekStartStr} – {targetWeekEndStr} · {branchId === "all" ? "Semua Cabang" : nameOf(branches, branchId)}</p></div><button type="button" className="target-close" onClick={() => setTargetDetail(null)} aria-label="Tutup">×</button></div><div className="target-modal-summary"><span className={targetDetail === "auvi" ? "target-summary-pill auvi" : "target-summary-pill ld"}>{targetDetail === "auvi" ? <>{targetAuviSessions}/{targetAuviGoal} sesi</> : <>{targetLdRombels}/{targetLdGoal} rombel</>}</span><span className="target-summary-note">{targetDetail === "auvi" ? "Target 10 sesi per minggu" : "Target 50% rombel per minggu · Kelas 12 tidak berlaku"}</span></div><div className="target-section-title">{targetDetail === "auvi" ? "Sesi AuVi yang sudah di-assign" : "Rombel LD yang sudah di-assign"}</div><div className="target-assignment-list">{targetDetail === "auvi" ? (targetAuviDetailRows.length ? targetAuviDetailRows.map(row => <div className="target-assignment-row" key={row.id}><div><strong>{nameOf(rombels, row.rombel_id)}</strong><span>{nameOf(branches, row.branch_id)} · {nameOf(mts, row.mt_id)} · {nameOf(mapels, row.mapel_id)}</span></div><b>{formatDate(row.planning_date)}</b></div>) : <div className="target-empty">Belum ada sesi AuVi TV yang di-assign pada minggu ini.</div>) : (targetLdDetailRombels.length ? targetLdDetailRombels.map(row => <div className="target-assignment-row" key={row.id}><div><strong>{nameOf(rombels, row.rombel_id)}</strong><span>{nameOf(branches, row.branch_id)} · {nameOf(mts, row.mt_id)} · {nameOf(mapels, row.mapel_id)}</span></div><b>LD ✓</b></div>) : <div className="target-empty">Belum ada rombel yang di-assign LD pada minggu ini.</div>)}</div><div className="target-gap-box"><strong>{targetDetail === "auvi" ? Math.max(0, targetAuviGoal - targetAuviSessions) : Math.max(0, targetLdGoal - targetLdRombels)}</strong><span>{targetDetail === "auvi" ? "sesi lagi untuk mencapai target" : "rombel lagi untuk mencapai target"}</span></div></section></div>}`;
   s = insertBeforeRootClose(s, modal);
   s = addCss(s);
@@ -55,28 +50,23 @@ function patchMonitoring() {
 function patchPlanning() {
   const file = path.join(process.cwd(), 'app/planning/page.tsx');
   let s = fs.readFileSync(file, 'utf8');
-
   const stateNeedle = '  const [modal, setModal] = useState<"draft" | "finalize" | null>(null);';
   if (!s.includes('const [targetDetail, setTargetDetail]')) {
     if (!s.includes(stateNeedle)) throw new Error('Planning target state marker not found');
     s = s.replace(stateNeedle, stateNeedle + '\n  const [targetDetail, setTargetDetail] = useState<"auvi" | "ld" | null>(null);\n  const [weeklyTargetRows, setWeeklyTargetRows] = useState<PlanningRow[]>([]);');
   }
-
   if (!s.includes('loadTargetDetailRows')) {
     const effectNeedle = '  const selectedDateLabel = formatDate(date);';
     if (!s.includes(effectNeedle)) throw new Error('Planning target effect marker not found');
     const effect = `  useEffect(() => {\n    let cancelled = false;\n    async function loadTargetDetailRows() {\n      if (!branchId || !date) { setWeeklyTargetRows([]); return; }\n      const base = new Date(date + "T00:00:00");\n      const day = base.getDay();\n      const diff = day === 0 ? -6 : 1 - day;\n      const start = new Date(base);\n      start.setDate(base.getDate() + diff);\n      const end = new Date(start);\n      end.setDate(start.getDate() + 6);\n      const { data } = await supabase.from("weekly_planning").select("id,planning_date,jenis_sesi,auvi_tv,ld,status,mt_id,rombel_id,mapel_id").eq("branch_id", branchId).gte("planning_date", start.toISOString().slice(0, 10)).lte("planning_date", end.toISOString().slice(0, 10));\n      if (!cancelled) setWeeklyTargetRows((data || []) as PlanningRow[]);\n    }\n    loadTargetDetailRows();\n    return () => { cancelled = true; };\n  }, [branchId, date, sessions]);\n\n  const isClass12Rombel = (id: string | null) => {\n    const label = nameOf(rombelRows, id);\n    return /(^|\\s)(kelas\\s*)?(12|xii)(\\s|$)/i.test(label);\n  };\n  const targetAuviDetailRows = weeklyTargetRows.filter(x => x.auvi_tv);\n  const targetLdDetailRows = weeklyTargetRows.filter(x => x.ld && x.rombel_id && !isClass12Rombel(x.rombel_id));\n  const targetLdDetailRombels = Array.from(new Map(targetLdDetailRows.map(x => [x.rombel_id!, x])).values());\n\n`;
     s = s.replace(effectNeedle, effect + effectNeedle);
   }
-
   const auviOld = '<div className="card planning-kpi"><div className="planning-kpi-top"><div className="kpi-label">AuVi TV Mingguan</div><div className="kpi-mini-icon">🎥</div></div><div className="kpi-value">{Math.min(100, Math.round((weeklyAuviSessions / 10) * 100))}%</div><div className="kpi-note">{weeklyAuviSessions}/10 sesi tercapai · target 10 sesi per minggu</div></div>';
   const auviNew = '<button type="button" className="card planning-kpi monitoring-target-click monitoring-auvi-kpi" onClick={() => setTargetDetail("auvi")} aria-label="Lihat detail assignment AuVi TV"><div className="planning-kpi-top"><div className="kpi-label">AuVi TV Mingguan</div><div className="kpi-mini-icon">🎥</div></div><div className="kpi-value">{Math.min(100, Math.round((weeklyAuviSessions / 10) * 100))}%</div><div className="kpi-note">{weeklyAuviSessions}/10 sesi tercapai · target 10 sesi per minggu</div><span className="target-card-hint">Lihat detail ↗</span></button>';
   if (s.includes(auviOld)) s = s.replace(auviOld, auviNew);
-
   const ldOld = '<div className="card planning-kpi"><div className="planning-kpi-top"><div className="kpi-label">LD Mingguan</div><div className="kpi-mini-icon">👥</div></div><div className="kpi-value">{weeklyLdRombels}/{weeklyRombelPopulation ? Math.ceil(weeklyRombelPopulation * 0.5) : 0}</div><div className="kpi-note">Target 50% rombel per minggu</div></div>';
   const ldNew = '<button type="button" className="card planning-kpi monitoring-target-kpi monitoring-ld-kpi monitoring-target-click" onClick={() => setTargetDetail("ld")} aria-label="Lihat detail assignment LD"><div className="planning-kpi-top"><div className="kpi-label">LD Mingguan</div><div className="kpi-mini-icon">👥</div></div><div className="kpi-value">{weeklyLdRombels}/{weeklyRombelPopulation ? Math.ceil(weeklyRombelPopulation * 0.5) : 0}</div><div className="kpi-note">Target 50% rombel per minggu</div><span className="target-card-hint">Lihat detail ↗</span></button>';
   if (s.includes(ldOld)) s = s.replace(ldOld, ldNew);
-
   const modal = `    {targetDetail && <div className="target-modal-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) setTargetDetail(null); }}><section className="target-modal" role="dialog" aria-modal="true" aria-labelledby="planning-target-title"><div className="target-modal-head"><div><div className="eyebrow">WEEKLY PLANNING · ASSIGNMENT</div><h2 id="planning-target-title">{targetDetail === "auvi" ? "🎥 AuVi TV Assignment" : "👥 LD Assignment"}</h2><p>{selectedDateLabel} · {branch}</p></div><button type="button" className="target-close" onClick={() => setTargetDetail(null)} aria-label="Tutup">×</button></div><div className="target-modal-summary"><span className={targetDetail === "auvi" ? "target-summary-pill auvi" : "target-summary-pill ld"}>{targetDetail === "auvi" ? <>{targetAuviDetailRows.length}/10 sesi</> : <>{targetLdDetailRombels.length}/{weeklyRombelPopulation ? Math.ceil(weeklyRombelPopulation * 0.5) : 0} rombel</>}</span><span className="target-summary-note">{targetDetail === "auvi" ? "Target 10 sesi per minggu" : "Target 50% rombel per minggu · Kelas 12 tidak berlaku"}</span></div><div className="target-section-title">{targetDetail === "auvi" ? "Sesi AuVi yang sudah di-assign" : "Rombel LD yang sudah di-assign"}</div><div className="target-assignment-list">{targetDetail === "auvi" ? (targetAuviDetailRows.length ? targetAuviDetailRows.map(row => <div className="target-assignment-row" key={row.id}><div><strong>{nameOf(rombelRows, row.rombel_id)}</strong><span>{nameOf(mtRows, row.mt_id)} · {nameOf(mapelRows, row.mapel_id)} · {formatDate(row.planning_date)}</span></div><b>AuVi ✓</b></div>) : <div className="target-empty">Belum ada sesi AuVi TV yang di-assign pada minggu ini.</div>) : (targetLdDetailRombels.length ? targetLdDetailRombels.map(row => <div className="target-assignment-row" key={row.id}><div><strong>{nameOf(rombelRows, row.rombel_id)}</strong><span>{nameOf(mtRows, row.mt_id)} · {nameOf(mapelRows, row.mapel_id)} · {formatDate(row.planning_date)}</span></div><b>LD ✓</b></div>) : <div className="target-empty">Belum ada rombel yang di-assign LD pada minggu ini.</div>)}</div><div className="target-gap-box"><strong>{targetDetail === "auvi" ? Math.max(0, 10 - targetAuviDetailRows.length) : Math.max(0, (weeklyRombelPopulation ? Math.ceil(weeklyRombelPopulation * 0.5) : 0) - targetLdDetailRombels.length)}</strong><span>{targetDetail === "auvi" ? "sesi lagi untuk mencapai target" : "rombel lagi untuk mencapai target"}</span></div></section></div>}`;
   s = insertBeforeRootClose(s, modal);
   s = addCss(s);
