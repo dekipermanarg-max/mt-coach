@@ -11,9 +11,15 @@ function addClickToCard(source, label, handler, ariaLabel, classNeedle = "card p
     throw new Error(`Target card container not found: ${label}`);
   }
   const tag = source.slice(cardStart, tagEnd);
-  if (tag.includes("onClick=")) return source;
+  const clickHint = `<div style={{ marginTop: 8, fontSize: 11, fontWeight: 800, color: "#2563eb", letterSpacing: "0.04em" }}>LIHAT DETAIL ▾</div>`;
+  if (tag.includes("onClick=")) {
+    if (!source.slice(tagEnd, source.indexOf("</div>", tagEnd)).includes("LIHAT DETAIL")) {
+      return source.slice(0, tagEnd + 1) + clickHint + source.slice(tagEnd + 1);
+    }
+    return source;
+  }
   const attrs = ` onClick={() => ${handler}} role="button" tabIndex={0} aria-label="${ariaLabel}" style={{ cursor: "pointer" }} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") ${handler}; }}`;
-  return source.slice(0, cardStart) + tag + attrs + source.slice(tagEnd);
+  return source.slice(0, cardStart) + tag + attrs + ">" + clickHint + source.slice(tagEnd + 1);
 }
 
 function injectAccordionRoot(source, id, beforeMarker) {
