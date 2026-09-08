@@ -1,0 +1,53 @@
+name: Fix Monitoring Topik Checkbox
+
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-topik-checkbox.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ensure Topik/Subtopik checkbox is visible
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('app/monitoring/page.tsx')
+          s = p.read_text(encoding='utf-8')
+
+          marker = 'checkboxItems.map(([key, label]) => ('
+          if marker not in s:
+              raise SystemExit('Could not find checkboxItems render block')
+
+          # Keep Topik/Subtopik out of the generic list so it is rendered explicitly.
+          old_item = '["topik_sub_topik_done", "Topik/Subtopik"], '
+          if old_item in s:
+              s = s.replace(old_item, '', 1)
+
+          explicit = '''<label style={{display:"inline-flex",alignItems:"center",gap:8,cursor:"pointer",fontSize:13,fontWeight:600,color:"#334155"}}>
+                <input type="checkbox" checked={Boolean(row.topik_sub_topik_done)} disabled={saving === row.id} onChange={(e) => saveRow(row, { topik_sub_topik_done: e.target.checked })} />
+                <span>Topik/Subtopik</span>
+              </label>\n              '''
+          if 'Topik/Subtopik</span>' not in s:
+              s = s.replace(marker, explicit + marker, 1)
+
+          p.write_text(s, encoding='utf-8')
+      - name: Commit patch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app/monitoring/page.tsx
+          git diff --cached --quiet && exit 0
+          git commit -m 'fix: show topik subtopik checkbox in monitoring'
+          git push
+      - name: Remove workflow
+        if: success()
+        run: |
+          git rm .github/workflows/fix-topik-checkbox.yml
+          git commit -m 'chore: remove temporary topik checkbox workflow'
+          git push
