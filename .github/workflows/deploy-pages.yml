@@ -62,6 +62,8 @@ jobs:
         run: node scripts/patch-planning-dropdowns.js
       - name: Patch Weekly AuVi Target
         run: node scripts/patch-planning-weekly-target.js
+      - name: Patch Weekly Planning Date Range
+        run: node scripts/patch-weekly-date-range.js
       - name: Patch Target Detail Clicks
         run: node scripts/patch-target-detail-click.js
       - name: Patch Dashboard Branding
