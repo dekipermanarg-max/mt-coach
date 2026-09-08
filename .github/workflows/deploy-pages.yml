@@ -34,6 +34,8 @@ jobs:
         run: node scripts/patch-monitoring-session-type-colors.js
       - name: Show Monitoring Weekly Targets
         run: node scripts/patch-monitoring-weekly-targets.js
+      - name: Add Monitoring Target Assignment Details
+        run: node scripts/patch-monitoring-target-details.js
       - name: Patch WhatsApp Report Wording
         run: node scripts/patch-wa-report.js
       - name: Prepare WhatsApp Screenshot Patch
@@ -62,6 +64,8 @@ jobs:
         run: node scripts/patch-planning-dropdowns.js
       - name: Patch Weekly AuVi Target
         run: node scripts/patch-planning-weekly-target.js
+      - name: Add Weekly Planning Target Assignment Details
+        run: node scripts/patch-planning-target-details.js
       - name: Patch Dashboard Branding
         run: node scripts/patch-branding.js
       - name: Patch WhatsApp Template Manager
