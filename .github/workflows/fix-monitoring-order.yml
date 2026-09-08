@@ -1,9 +1,6 @@
 name: Fix Monitoring Order
 
-on:
-  push:
-    paths:
-      - '.github/workflows/fix-monitoring-order.yml'
+on: push
 
 permissions:
   contents: write
@@ -33,13 +30,15 @@ jobs:
               raise SystemExit('Target Monitoring filtered block not found')
           p.write_text(s.replace(old, new, 1))
           PY
-      - name: Commit fix and remove one-shot workflow
+      - name: Commit fix
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add app/monitoring/page.tsx
-          git commit -m "fix: preserve weekly planning input order in monitoring"
-          git push
-          git rm .github/workflows/fix-monitoring-order.yml
-          git commit -m "chore: remove one-shot monitoring fix workflow"
-          git push
+          git diff --cached --quiet || git commit -m "fix: preserve weekly planning input order in monitoring"
+          git push || true
+      - name: Remove one-shot workflow
+        run: |
+          git rm .github/workflows/fix-monitoring-order.yml || true
+          git commit -m "chore: remove one-shot monitoring fix workflow" || true
+          git push || true
