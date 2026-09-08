@@ -1,7 +1,6 @@
 name: Deploy to GitHub Pages
 
-# Force a fresh Pages deployment so the latest UI changes are published.
-# Screenshot runtime fix is applied before the production build.
+# Canonical production deployment. Includes all UI patches before the static build.
 on:
   push:
     branches: [main]
@@ -31,6 +30,10 @@ jobs:
         run: npm install
       - name: Patch Monitoring UI
         run: node scripts/patch-monitoring.js
+      - name: Differentiate Monitoring Session Types
+        run: node scripts/patch-monitoring-session-type-colors.js
+      - name: Show Monitoring Weekly Targets
+        run: node scripts/patch-monitoring-weekly-targets.js
       - name: Patch WhatsApp Report Wording
         run: node scripts/patch-wa-report.js
       - name: Prepare WhatsApp Screenshot Patch
@@ -45,6 +48,14 @@ jobs:
         run: node scripts/patch-wa-screenshot-design-v3.js
       - name: Fix Screenshot Runtime Column Mapping
         run: node scripts/patch-wa-screenshot-runtime-fix.js
+      - name: Refine BAC Logo and Screenshot Footer
+        run: node scripts/patch-wa-screenshot-logo-v4.js
+      - name: Apply Exact Supplied BAC Logo
+        run: node scripts/patch-wa-screenshot-exact-logo-v2.js
+      - name: Fix Exact BAC Logo Runtime Asset
+        run: node scripts/patch-wa-screenshot-exact-logo-runtime-fix.js
+      - name: Finalize Screenshot Footer Layout
+        run: node scripts/patch-wa-screenshot-footer-final-v2.js
       - name: Patch Weekly Planning UI
         run: node scripts/patch-planning.js
       - name: Patch Weekly Planning Dropdowns
