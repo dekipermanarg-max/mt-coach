@@ -1,21 +1,24 @@
 const fs = require("fs");
 const path = require("path");
 
-function addClickToCard(source, label, handler, ariaLabel) {
+function addClickToCard(source, label, handler, ariaLabel, classNeedle = "card planning-kpi") {
   const labelIndex = source.indexOf(label);
   if (labelIndex < 0) throw new Error(`Target card label not found: ${label}`);
-  const buttonStart = source.lastIndexOf("<button", labelIndex);
-  const tagEnd = source.indexOf(">", buttonStart);
-  if (buttonStart < 0 || tagEnd < 0 || tagEnd < labelIndex) {
-    throw new Error(`Target card button not found: ${label}`);
+  const cardMarker = `<div className="${classNeedle}`;
+  const cardStart = source.lastIndexOf(cardMarker, labelIndex);
+  const tagEnd = source.indexOf(">", cardStart);
+  if (cardStart < 0 || tagEnd < 0 || tagEnd > labelIndex) {
+    throw new Error(`Target card container not found: ${label}`);
   }
-  const tag = source.slice(buttonStart, tagEnd);
+  const tag = source.slice(cardStart, tagEnd);
   if (tag.includes("onClick=")) return source;
   const nextTag = tag.replace(
-    "<button",
-    `<button onClick={() => ${handler}} aria-label="${ariaLabel}"`
+    `<div className="${classNeedle}`,
+    `<div className="${classNeedle}`
   );
-  return source.slice(0, buttonStart) + nextTag + source.slice(tagEnd);
+  const attrs = ` onClick={() => ${handler}} role="button" tabIndex={0} aria-label="${ariaLabel}" onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") ${handler}; }}`;
+  const finalTag = nextTag + attrs;
+  return source.slice(0, cardStart) + finalTag + source.slice(tagEnd);
 }
 
 function patchMonitoring() {
@@ -36,7 +39,7 @@ function patchMonitoring() {
     '    const lines = unique.length',
     '      ? unique.map((r, i) => (i + 1) + ". " + nameOf(rombels, r.rombel_id) + " — " + nameOf(mts, r.mt_id) + " — " + nameOf(mapels, r.mapel_id) + " — " + formatDate(r.planning_date))',
     '      : ["Belum ada assignment."];',
-    '    window.alert([title, targetWeekStartStr + " – " + targetWeekEndStr, count + "/" + goal + " tercapai", "", ...lines, "", "Sisa target: " + Math.max(0, goal - count)].join("\n"));',
+    '    window.alert([title, targetWeekStartStr + " – " + targetWeekEndStr, count + "/" + goal + " tercapai", "", ...lines, "", "Sisa target: " + Math.max(0, goal - count)].join("\\n"));',
     '  }',
     ''
   ].join("\n");
@@ -44,8 +47,8 @@ function patchMonitoring() {
     if (!s.includes(marker)) throw new Error("Monitoring target click marker not found");
     s = s.replace(marker, marker + "\n" + fn);
   }
-  s = addClickToCard(s, "Target AuVi TV", 'showTargetDetail("auvi")', "Lihat detail assignment AuVi TV");
-  s = addClickToCard(s, "Target LD", 'showTargetDetail("ld")', "Lihat detail assignment LD");
+  s = addClickToCard(s, "Target AuVi TV", 'showTargetDetail("auvi")', "Lihat detail assignment AuVi TV", "card planning-kpi monitoring-target-kpi monitoring-auvi-kpi");
+  s = addClickToCard(s, "Target LD", 'showTargetDetail("ld")', "Lihat detail assignment LD", "card planning-kpi monitoring-target-kpi monitoring-ld-kpi");
   fs.writeFileSync(file, s);
   console.log("Patched Monitoring target cards with robust click details.");
 }
@@ -77,7 +80,7 @@ function patchPlanning() {
     '    const lines = unique.length',
     '      ? unique.map((r, i) => (i + 1) + ". " + nameOf(rombelRows, r.rombel_id) + " — " + nameOf(mtRows, r.mt_id) + " — " + nameOf(mapelRows, r.mapel_id) + " — " + formatDate(r.planning_date))',
     '      : ["Belum ada assignment."];',
-    '    window.alert([title, startStr + " – " + endStr, unique.length + "/" + goal + " tercapai", "", ...lines, "", "Sisa target: " + Math.max(0, goal - unique.length)].join("\n"));',
+    '    window.alert([title, startStr + " – " + endStr, unique.length + "/" + goal + " tercapai", "", ...lines, "", "Sisa target: " + Math.max(0, goal - unique.length)].join("\\n"));',
     '  }',
     ''
   ].join("\n");
