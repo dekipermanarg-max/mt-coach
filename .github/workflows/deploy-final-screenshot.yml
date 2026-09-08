@@ -1,8 +1,7 @@
 name: Deploy Final BAC Screenshot
 
+# Manual-only legacy workflow. Production pushes are handled by deploy-pages.yml.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -11,7 +10,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  group: final-bac-screenshot
   cancel-in-progress: true
 
 jobs:
