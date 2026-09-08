@@ -93,6 +93,47 @@ if (!s.includes('loadWeeklyTargets')) {
   s = s.replace('planningRows.filter(x => x.ld && x.rombel_id && x.status !== "Draft")', 'planningRows.filter(x => x.ld && x.rombel_id)');
 }
 
+// Weekly Planning uses a Monday-Sunday period. Keep `date` as the anchor
+// for backward compatibility, but show the complete weekly range in the UI.
+const rangeNeedle = '  const selectedDateLabel = date ? formatDate(date) : "";';
+const rangeAdd = `  const weekBase = new Date(date + "T00:00:00");
+  const weekDay = weekBase.getDay();
+  const weekDiff = weekDay === 0 ? -6 : 1 - weekDay;
+  const weekStart = new Date(weekBase);
+  weekStart.setDate(weekBase.getDate() + weekDiff);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6);
+  const weekStartStr = weekStart.toISOString().slice(0, 10);
+  const weekEndStr = weekEnd.toISOString().slice(0, 10);
+  const weeklyRangeLabel = \`${formatDate(weekStartStr)} – ${formatDate(weekEndStr)}\`;`;
+
+if (!s.includes("const weeklyRangeLabel")) {
+  if (!s.includes(rangeNeedle)) throw new Error("weekly date range marker not found");
+  s = s.replace(rangeNeedle, rangeAdd + "\n" + rangeNeedle);
+}
+
+// Replace the single-date control with a visible Monday-Sunday range.
+// The left date is the week selector; any chosen date represents that week.
+const dateControlRegex = /<div className="control-box">\s*<span className="control-label">Tanggal Planning<\/span>\s*<div className="date-control">\s*<div className="date-icon">📅<\/div>\s*<input className="date-input" type="date" value=\{date\} onChange=\{\(e\) => setDate\(e\.target\.value\)\} \/>\s*<\/div>\s*<div className="date-caption">\{selectedDateLabel\}<\/div>\s*<\/div>/;
+const dateControl = `<div className="control-box">
+          <span className="control-label">Periode Planning</span>
+          <div className="date-control" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div className="date-icon">📅</div>
+            <input className="date-input" type="date" value={weekStartStr} aria-label="Tanggal mulai minggu" onChange={(e) => setDate(e.target.value)} />
+            <span style={{ fontWeight: 800, color: "#64748b" }}>→</span>
+            <input className="date-input" type="date" value={weekEndStr} aria-label="Tanggal akhir minggu" readOnly />
+          </div>
+          <div className="date-caption">{weeklyRangeLabel}</div>
+        </div>`;
+if (dateControlRegex.test(s)) {
+  s = s.replace(dateControlRegex, dateControl);
+} else if (!s.includes("Periode Planning")) {
+  throw new Error("Weekly date control marker not found");
+}
+
+// Replace date references in the visible planning context with the weekly range.
+s = s.replace('<p>{branch} · {selectedDateLabel}</p>', '<p>{branch} · {weeklyRangeLabel}</p>');
+
 // Replace the KPI cards by their visible labels, so the patch survives harmless source formatting changes.
 const auviCardRegex = /<div className="card planning-kpi"><div className="planning-kpi-top"><div className="kpi-label">(?:AuVi TV Coverage|AuVi TV Mingguan)<\/div>[\s\S]*?<\/div><div className="kpi-value">[\s\S]*?<\/div><div className="kpi-note">[\s\S]*?<\/div><\/div>/;
 const auviCard = '<div className="card planning-kpi"><div className="planning-kpi-top"><div className="kpi-label">AuVi TV Mingguan</div><div className="kpi-mini-icon">🎥</div></div><div className="kpi-value">{Math.min(100, Math.round((weeklyAuviSessions / 10) * 100))}%</div><div className="kpi-note">{weeklyAuviSessions}/10 sesi tercapai · target 10 sesi per minggu</div></div>';
