@@ -12,7 +12,7 @@ function addClickToCard(source, label, handler, ariaLabel, classNeedle = "card p
   }
   const tag = source.slice(cardStart, tagEnd);
   if (tag.includes("onClick=")) return source;
-  const attrs = ` onClick={() => ${handler}} role="button" tabIndex={0} aria-label="${ariaLabel}" onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") ${handler}; }}`;
+  const attrs = ` onClick={() => ${handler}} role="button" tabIndex={0} aria-label="${ariaLabel}" style={{ cursor: "pointer" }} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") ${handler}; }}`;
   return source.slice(0, cardStart) + tag + attrs + source.slice(tagEnd);
 }
 
@@ -53,7 +53,7 @@ function patchMonitoring() {
   }
   s = addClickToCard(s, "Target AuVi TV", 'showTargetDetail("auvi")', "Lihat detail assignment AuVi TV", "card planning-kpi monitoring-target-kpi monitoring-auvi-kpi");
   s = addClickToCard(s, "Target LD", 'showTargetDetail("ld")', "Lihat detail assignment LD", "card planning-kpi monitoring-target-kpi monitoring-ld-kpi");
-  s = injectAccordionRoot(s, "monitoring-target-detail", '      <section className="card monitoring-results-card">');
+  s = injectAccordionRoot(s, "monitoring-target-detail", '    <section className="card monitoring-card-list">');
   fs.writeFileSync(file, s);
   console.log("Patched Monitoring target cards with accordion details.");
 }
