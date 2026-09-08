@@ -32,23 +32,37 @@ if (!s.includes("const weeklyRangeLabel")) {
   s = s.replace(marker, rangeAdd + "\n" + marker);
 }
 
-// Match the Monitoring look: three cards for branch, start date, and end date.
+// Replace only the existing planning control section. Keep the JSX simple and avoid nested <style> tags.
 if (!s.includes("weekly-range-layout")) {
-  const labelIndex = s.indexOf('<span className="control-label">Tanggal Planning</span>');
-  if (labelIndex < 0) throw new Error("Weekly date control label not found");
-  const controlStart = s.lastIndexOf('        <div className="control-box">', labelIndex);
-  const controlEndMarker = '\n        </div>\n      </section>';
-  const controlEnd = s.indexOf(controlEndMarker, labelIndex);
-  if (controlStart < 0 || controlEnd < 0) throw new Error("Weekly date control container not found");
-
-  const newDateBlock = `        <style>{\`\n          .weekly-range-layout { grid-template-columns: 1fr 1fr 1fr !important; }\n          .weekly-range-layout .date-input { width: 100%; }\n          .weekly-range-layout .date-input[readonly] { cursor: default; }\n          @media (max-width: 1000px) { .weekly-range-layout { grid-template-columns: 1fr !important; } }\n        \`}</style>\n        <div className="control-box">\n          <span className="control-label">Cabang</span>\n          <select className="branch-select" value={branch} onChange={(e) => setBranch(e.target.value)}>\n            {BRANCHES.map((item) => <option key={item}>{item}</option>)}\n          </select>\n        </div>\n        <div className="control-box">\n          <span className="control-label">Tanggal Awal</span>\n          <div className="date-control">\n            <div className="date-icon">📅</div>\n            <input className="date-input" type="date" value={weekStartStr || date} onChange={(e) => setDate(e.target.value)} aria-label="Pilih tanggal awal minggu planning" />\n          </div>\n        </div>\n        <div className="control-box">\n          <span className="control-label">Tanggal Akhir</span>\n          <div className="date-control">\n            <div className="date-icon">📅</div>\n            <input className="date-input" type="date" value={weekEndStr} readOnly aria-label="Tanggal akhir minggu planning" />\n          </div>\n        </div>`;
-
-  const sectionStart = s.lastIndexOf('      <section className="planning-control-card">', labelIndex);
+  const sectionStart = s.indexOf('      <section className="planning-control-card">');
   if (sectionStart < 0) throw new Error("Weekly planning control section not found");
-  const sectionEnd = s.indexOf('      </section>', controlEnd);
+  const sectionEnd = s.indexOf("      </section>", sectionStart);
   if (sectionEnd < 0) throw new Error("Weekly planning control section end not found");
-  const replacement = `      <section className="planning-control-card weekly-range-layout">\n${newDateBlock}\n`;
-  s = s.slice(0, sectionStart) + replacement + s.slice(sectionEnd + '      </section>'.length);
+
+  const newControl = `      <section className="planning-control-card weekly-range-layout" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
+        <div className="control-box">
+          <span className="control-label">Cabang</span>
+          <select className="branch-select" value={branch} onChange={(e) => setBranch(e.target.value)}>
+            {BRANCHES.map((item) => <option key={item}>{item}</option>)}
+          </select>
+        </div>
+        <div className="control-box">
+          <span className="control-label">Tanggal Awal</span>
+          <div className="date-control">
+            <div className="date-icon">📅</div>
+            <input className="date-input" type="date" value={weekStartStr || date} onChange={(e) => setDate(e.target.value)} aria-label="Pilih tanggal awal minggu planning" />
+          </div>
+        </div>
+        <div className="control-box">
+          <span className="control-label">Tanggal Akhir</span>
+          <div className="date-control">
+            <div className="date-icon">📅</div>
+            <input className="date-input" type="date" value={weekEndStr || date} readOnly aria-label="Tanggal akhir minggu planning" />
+          </div>
+        </div>
+      </section>`;
+
+  s = s.slice(0, sectionStart) + newControl + s.slice(sectionEnd + "      </section>".length);
 }
 
 // Keep all weekly operations on Monday-Sunday.
