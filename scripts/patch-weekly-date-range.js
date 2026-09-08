@@ -39,7 +39,8 @@ if (!s.includes("Periode Planning (Mingguan)")) {
   const labelIndex = s.indexOf('<span className="control-label">Tanggal Planning</span>');
   if (labelIndex < 0) throw new Error("Weekly date control label not found");
   const controlStart = s.lastIndexOf('        <div className="control-box">', labelIndex);
-  const controlEnd = s.indexOf('\n        </div>\n      </section>', labelIndex);
+  const controlEndMarker = '\n        </div>\n      </section>';
+  const controlEnd = s.indexOf(controlEndMarker, labelIndex);
   if (controlStart < 0 || controlEnd < 0) throw new Error("Weekly date control container not found");
   const newDateBlock = `        <div className="control-box">
           <span className="control-label">Periode Planning (Mingguan)</span>
@@ -49,7 +50,8 @@ if (!s.includes("Periode Planning (Mingguan)")) {
           </div>
           {date && <div className="date-caption"><strong>{weeklyRangeLabel}</strong></div>}
         </div>`;
-  s = s.slice(0, controlStart) + newDateBlock + s.slice(controlEnd);
+  const controlEndExclusive = controlEnd + controlEndMarker.indexOf('\n      </section>');
+  s = s.slice(0, controlStart) + newDateBlock + s.slice(controlEndExclusive);
 }
 
 // Make list/save/finalize operate on the whole Monday-Sunday period.
