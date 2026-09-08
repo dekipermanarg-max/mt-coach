@@ -31,6 +31,8 @@ jobs:
         run: node scripts/patch-monitoring.js
       - name: Differentiate Monitoring Session Types
         run: node scripts/patch-monitoring-session-type-colors.js
+      - name: Show Monitoring Weekly Targets
+        run: node scripts/patch-monitoring-weekly-targets.js
       - name: Patch WhatsApp Report Wording
         run: node scripts/patch-wa-report.js
       - name: Prepare WhatsApp Screenshot Patch
