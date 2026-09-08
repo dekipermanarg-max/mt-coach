@@ -11,14 +11,14 @@ function addClickToCard(source, label, handler, ariaLabel, classNeedle = "card p
     throw new Error(`Target card container not found: ${label}`);
   }
   const tag = source.slice(cardStart, tagEnd);
-  const clickHint = `<div style={{ marginTop: 8, fontSize: 11, fontWeight: 800, color: "#2563eb", letterSpacing: "0.04em" }}>LIHAT DETAIL ▾</div>`;
+  const clickHint = `<div style={{ position: "absolute", right: 16, bottom: 12, fontSize: 11, fontWeight: 800, color: "#2563eb", letterSpacing: "0.04em" }}>LIHAT DETAIL ▾</div>`;
   if (tag.includes("onClick=")) {
     if (!source.slice(tagEnd, source.indexOf("</div>", tagEnd)).includes("LIHAT DETAIL")) {
       return source.slice(0, tagEnd + 1) + clickHint + source.slice(tagEnd + 1);
     }
     return source;
   }
-  const attrs = ` onClick={() => ${handler}} role="button" tabIndex={0} aria-label="${ariaLabel}" style={{ cursor: "pointer" }} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") ${handler}; }}`;
+  const attrs = ` onClick={() => ${handler}} role="button" tabIndex={0} aria-label="${ariaLabel}" style={{ cursor: "pointer", position: "relative" }} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") ${handler}; }}`;
   return source.slice(0, cardStart) + tag + attrs + ">" + clickHint + source.slice(tagEnd + 1);
 }
 
