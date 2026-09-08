@@ -12,13 +12,8 @@ function addClickToCard(source, label, handler, ariaLabel, classNeedle = "card p
   }
   const tag = source.slice(cardStart, tagEnd);
   if (tag.includes("onClick=")) return source;
-  const nextTag = tag.replace(
-    `<div className="${classNeedle}`,
-    `<div className="${classNeedle}`
-  );
   const attrs = ` onClick={() => ${handler}} role="button" tabIndex={0} aria-label="${ariaLabel}" onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") ${handler}; }}`;
-  const finalTag = nextTag + attrs;
-  return source.slice(0, cardStart) + finalTag + source.slice(tagEnd);
+  return source.slice(0, cardStart) + tag + attrs + source.slice(tagEnd);
 }
 
 function patchMonitoring() {
@@ -56,7 +51,8 @@ function patchMonitoring() {
 function patchPlanning() {
   const file = path.join(process.cwd(), "app/planning/page.tsx");
   let s = fs.readFileSync(file, "utf8");
-  const marker = '  const selectedDateLabel = formatDate(date);';
+  // patch-planning.js runs before this script and makes the date label conditional when no date is selected.
+  const marker = '  const selectedDateLabel = date ? formatDate(date) : "";';
   const fn = [
     '  async function showTargetDetail(kind: "auvi" | "ld") {',
     '    if (!branchId || !date) return;',
