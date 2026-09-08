@@ -45,6 +45,8 @@ jobs:
         run: node scripts/patch-wa-screenshot-runtime-fix.js
       - name: Refine BAC Logo and Screenshot Footer
         run: node scripts/patch-wa-screenshot-logo-v4.js
+      - name: Apply Exact Supplied BAC Logo
+        run: node scripts/patch-wa-screenshot-exact-logo-v2.js
       - name: Patch Weekly Planning UI
         run: node scripts/patch-planning.js
       - name: Patch Weekly Planning Dropdowns
