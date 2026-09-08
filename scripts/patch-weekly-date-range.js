@@ -14,7 +14,7 @@ const rangeAdd = `  const weekBase = new Date(date + "T00:00:00");
   weekEnd.setDate(weekStart.getDate() + 6);
   const weekStartStr = weekStart.toISOString().slice(0, 10);
   const weekEndStr = weekEnd.toISOString().slice(0, 10);
-  const weeklyRangeLabel = \`${formatDate(weekStartStr)} – ${formatDate(weekEndStr)}\`;`;
+  const weeklyRangeLabel = \`\${formatDate(weekStartStr)} – \${formatDate(weekEndStr)}\`;`;
 
 if (!s.includes("const weeklyRangeLabel")) {
   if (!s.includes(marker)) throw new Error("Weekly date range marker not found");
@@ -38,7 +38,7 @@ if (dateControlRegex.test(s)) {
   throw new Error("Weekly date control marker not found");
 }
 
-// Load, save, and finalize the complete Monday-Sunday planning period.
+// Keep data loading on the full Monday-Sunday planning period.
 s = s.replaceAll(
   '.eq("planning_date", date)',
   '.gte("planning_date", weekStartStr)\n      .lte("planning_date", weekEndStr)'
