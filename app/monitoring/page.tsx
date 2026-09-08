@@ -6,7 +6,7 @@ import { supabase } from "../../lib/supabase";
 
 type MasterRow = { id: string; name: string };
 type MonitoringRow = {
-  id: string; planning_date: string; branch_id: string; mt_id: string | null; rombel_id: string | null; mapel_id: string | null;
+  id: string; created_at: string; planning_date: string; branch_id: string; mt_id: string | null; rombel_id: string | null; mapel_id: string | null;
   jenis_sesi: string; auvi_tv: boolean; ld: boolean; topik_sub_topik: string | null; topik_sub_topik_done: boolean;
   attendance: boolean; starchamps: boolean; activity_score: boolean; report_sessions: boolean; foto_kbm: boolean; report_wa: boolean;
   auvi_tv_status: string; ld_status: string;
@@ -51,8 +51,8 @@ export default function Monitoring() {
     ]);
     setBranches(b.data || []); setMts(mt.data || []); setRombels(r.data || []); setMapels(m.data || []);
     const { data, error } = await supabase.from("weekly_planning")
-      .select("id,planning_date,branch_id,mt_id,rombel_id,mapel_id,jenis_sesi,auvi_tv,ld,topik_sub_topik,topik_sub_topik_done,attendance,starchamps,activity_score,report_sessions,foto_kbm,report_wa,auvi_tv_status,ld_status")
-      .eq("status", "Finalized").order("planning_date", { ascending: false });
+      .select("id,created_at,planning_date,branch_id,mt_id,rombel_id,mapel_id,jenis_sesi,auvi_tv,ld,topik_sub_topik,topik_sub_topik_done,attendance,starchamps,activity_score,report_sessions,foto_kbm,report_wa,auvi_tv_status,ld_status")
+      .eq("status", "Finalized").order("created_at", { ascending: true });
     if (error) setMessage(`Gagal memuat Monitoring: ${error.message}`);
     else {
       const nextRows = (data || []) as MonitoringRow[];
