@@ -28,7 +28,7 @@ if (!s.includes("const MONITORING_BRANCH_ROMBEL_COUNTS")) {
 }
 
 const stateNeedle = '  const incompleteCount = incompleteRows.length;';
-const stateBlock = `  const targetWeekBase = new Date(`${'${startDate || new Date().toISOString().slice(0, 10)}'}T00:00:00`);
+const stateBlock = `  const targetWeekBase = new Date((startDate || new Date().toISOString().slice(0, 10)) + "T00:00:00");
   const targetWeekDay = targetWeekBase.getDay();
   const targetWeekDiff = targetWeekDay === 0 ? -6 : 1 - targetWeekDay;
   const targetWeekStart = new Date(targetWeekBase);
@@ -39,7 +39,7 @@ const stateBlock = `  const targetWeekBase = new Date(`${'${startDate || new Dat
   const targetWeekEndStr = targetWeekEnd.toISOString().slice(0, 10);
   const targetWeekRows = filtered.filter(r => r.planning_date >= targetWeekStartStr && r.planning_date <= targetWeekEndStr);
   const targetAuviSessions = targetWeekRows.filter(r => r.auvi_tv).length;
-  const targetLdRombels = new Set(targetWeekRows.filter(r => r.ld && r.rombel_id).map(r => `${'${r.branch_id}'}:${'${r.rombel_id}'}`)).size;
+  const targetLdRombels = new Set(targetWeekRows.filter(r => r.ld && r.rombel_id).map(r => r.branch_id + ":" + r.rombel_id)).size;
   const targetBranches = branchId === "all" ? Array.from(new Set(targetWeekRows.map(r => r.branch_id))) : [branchId];
   const targetRombelPopulation = targetBranches.reduce((sum, id) => {
     const branchName = nameOf(branches, id);
