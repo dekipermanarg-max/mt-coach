@@ -76,7 +76,7 @@ export default function Monitoring() {
     (!startDate || r.planning_date >= startDate) && (!endDate || r.planning_date <= endDate) &&
     (branchId === "all" || r.branch_id === branchId) && (selectedMT === "all" || r.mt_id === selectedMT) &&
     `${nameOf(mts, r.mt_id)} ${nameOf(rombels, r.rombel_id)} ${nameOf(mapels, r.mapel_id)} ${r.jenis_sesi}`.toLowerCase().includes(search.toLowerCase())
-  ), [rows, mts, rombels, mapels, branchId, selectedMT, startDate, endDate, search]);
+  ).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()), [rows, mts, rombels, mapels, branchId, selectedMT, startDate, endDate, search]);
 
   const avgAdmin = filtered.length ? Math.round(filtered.reduce((a, r) => a + adminPercent(r), 0) / filtered.length) : 0;
   const completeCount = filtered.filter(r => adminDone(r) === adminTotal(r)).length;
