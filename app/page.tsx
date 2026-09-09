@@ -72,6 +72,12 @@ function adminComplete(s: SessionRow) {
   );
 }
 
+function defaultStart() {
+  const d = new Date();
+  d.setDate(d.getDate() - 6);
+  return d.toISOString().slice(0, 10);
+}
+
 export default function Home() {
   const [mts, setMts] = useState<MasterRow[]>([]);
   const [rombels, setRombels] = useState<MasterRow[]>([]);
@@ -83,11 +89,13 @@ export default function Home() {
   useEffect(() => {
     async function load() {
       setLoading(true);
+      const startDate = defaultStart();
+      const endDate = new Date().toISOString().slice(0, 10);
       const [b, mt, r, s] = await Promise.all([
         supabase.from("branches").select("id,name,active").eq("active", true).order("name"),
         supabase.from("master_mt").select("id,name,branch_id,active").eq("active", true).order("name"),
         supabase.from("master_rombel").select("id,name,branch_id,active").eq("active", true).order("name"),
-        supabase.from("weekly_planning").select("id,planning_date,branch_id,mt_id,rombel_id,jenis_sesi,status,auvi_tv,ld,auvi_tv_status,ld_status,attendance,topik_sub_topik_done,starchamps,activity_score,report_sessions,foto_kbm,report_wa").eq("status", "Finalized").order("planning_date", { ascending: false }),
+        supabase.from("weekly_planning").select("id,planning_date,branch_id,mt_id,rombel_id,jenis_sesi,status,auvi_tv,ld,auvi_tv_status,ld_status,attendance,topik_sub_topik_done,starchamps,activity_score,report_sessions,foto_kbm,report_wa").eq("status", "Finalized").gte("planning_date", startDate).lte("planning_date", endDate).order("planning_date", { ascending: false }),
       ]);
       setBranches((b.data || []) as MasterRow[]);
       setMts((mt.data || []) as MasterRow[]);
@@ -151,7 +159,7 @@ export default function Home() {
             <div className="card attention-card"><div className="section-head"><div><h3>📺 AuVi TV + LD</h3><div className="kpi-note">Assignment & administrasi yang perlu diperhatikan</div></div><Link className="badge yellow" href="/monitoring">Lihat Monitoring →</Link></div><div className="attention">{auviSessions < auviTarget && <div className="alert"><div><strong>📺 AuVi TV belum mencapai target</strong><small>{auviSessions}/{auviTarget} sesi · target {AUVI_WEEKLY_TARGET_PER_BRANCH} sesi per cabang per minggu.</small></div></div>}{ldCount < ldTarget && <div className="alert"><div><strong>📝 LD belum mencapai target mingguan</strong><small>{ldCount}/{ldTarget} sesi · target minimal 50% dari {ldEligible} rombel eligible.</small></div></div>}{!changedCount && auviSessions >= auviTarget && ldCount >= ldTarget && <div className="alert"><div><strong>✅ All good</strong><small>AuVi TV dan LD sudah memenuhi target.</small></div></div>}{changedCount > 0 && <div className="alert"><div><strong>🔄 {changedCount} sesi changed</strong><small>Ada sesi yang mengalami perubahan.</small></div><Link className="badge yellow" href="/monitoring">Lihat Sesi →</Link></div>}</div></div>
           </div>
         </section>
-        <section className="section"><div className="section-head"><div><h2>🏆 MT Performance</h2><div className="kpi-note">Top 5 · Ranking berdasarkan kelengkapan administrasi</div></div><Link className="kpi-note" href="/performance">Lihat semua →</Link></div><div className="table-wrap"><table><thead><tr><th>#</th><th>MT</th><th>Finalized</th><th>Admin Lengkap</th><th>Admin</th><th>Status</th></tr></thead><tbody>{performance.map((r, i) => <tr key={r.id}><td>{i < 3 ? ["🥇", "🥈", "🥉"][i] : i + 1}</td><td><strong>{r.name}</strong></td><td>{r.planned}</td><td>{r.complete}</td><td className="score">{r.admin}%</td><td><span className={`badge ${r.admin >= 95 ? "green" : r.admin >= 90 ? "blue" : r.admin >= 75 ? "yellow" : "red"}`}>{r.admin >= 95 ? "Excellent" : r.admin >= 90 ? "Good" : r.admin >= 75 ? "Attention" : "Critical"}</span></td></tr>)}</tbody></table></div></section>
+        <section className="section"><div className="section-head"><div><h2>🏆 MT Performance</h2><div className="kpi-note">Top 5 · Ranking berdasarkan kelengkapan administrasi · 7 hari terakhir</div></div><Link className="kpi-note" href="/performance">Lihat semua →</Link></div><div className="table-wrap"><table><thead><tr><th>#</th><th>MT</th><th>Finalized</th><th>Admin Lengkap</th><th>Admin</th><th>Status</th></tr></thead><tbody>{performance.map((r, i) => <tr key={r.id}><td>{i < 3 ? ["🥇", "🥈", "🥉"][i] : i + 1}</td><td><strong>{r.name}</strong></td><td>{r.planned}</td><td>{r.complete}</td><td className="score">{r.admin}%</td><td><span className={`badge ${r.admin >= 95 ? "green" : r.admin >= 90 ? "blue" : r.admin >= 75 ? "yellow" : "red"}`}>{r.admin >= 95 ? "Excellent" : r.admin >= 90 ? "Good" : r.admin >= 75 ? "Attention" : "Critical"}</span></td></tr>)}</tbody></table></div></section>
         <section className="section"><div className="section-head"><h2>📅 Today</h2><Link className="kpi-note" href="/planning">Lihat Planning →</Link></div><div className="today">{todaySessions.length ? todaySessions.map(s => <div className="session" key={s.id}><strong>{formatDate(s.planning_date)}</strong><span>{mts.find(m => m.id === s.mt_id)?.name || "—"}</span><br/><span className={`badge ${s.attendance || s.status === "Realized" ? "green" : s.status === "Changed" ? "yellow" : s.status === "Cancelled" ? "red" : "blue"}`}>{s.status || "Finalized"}</span></div>) : <div className="alert"><div><strong>Belum ada sesi</strong><small>Belum ada sesi Finalized pada hari ini.</small></div></div>}</div></section>
       </>}
       <style jsx global>{`.dashboard-page{padding-top:0}.dashboard-filters{display:flex;justify-content:flex-end;margin-bottom:18px}.dashboard-filters .select{min-width:250px}.attention-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.attention-card{min-width:0}.attention-card h3{margin:0 0 4px}.attention-card .section-head{align-items:flex-start}@media(max-width:900px){.attention-grid{grid-template-columns:1fr}}`}</style>
