@@ -9,10 +9,17 @@ type MonitoringRow = {
   id: string; created_at: string; planning_date: string; branch_id: string; mt_id: string | null; rombel_id: string | null; mapel_id: string | null;
   jenis_sesi: string; auvi_tv: boolean; ld: boolean; topik_sub_topik: string | null; topik_sub_topik_done: boolean;
   attendance: boolean; starchamps: boolean; activity_score: boolean; report_sessions: boolean; foto_kbm: boolean; report_wa: boolean;
-  auvi_tv_status: string; ld_status: string;
+  auvi_tv_status: string | null; ld_status: string | null;
 };
 
-const AUVISTATUSES = ["Bukan sesi AuVi TV", "Tidak connect ke TV", "Connect ke TV"];
+const AUVISTATUSES = [
+  "Bukan sesi AuVi TV",
+  "Tidak connect ke TV",
+  "Connect ke TV",
+  "✅ Connect AuVi TV",
+  "❌ Bukan sesi AuVi TV",
+  "✖️ Bukan sesi AuVi TV",
+];
 const LDSTATUSES = ["Bukan sesi LD", "Sudah report di CMS", "Belum report ke CMS"];
 const ADMIN_KEYS = ["topik_sub_topik_done", "attendance", "starchamps", "activity_score", "report_sessions", "foto_kbm", "report_wa"] as const;
 
@@ -68,11 +75,45 @@ export default function Monitoring() {
   useEffect(() => { load(); }, []);
   const nameOf = (list: MasterRow[], id: string | null) => list.find(x => x.id === id)?.name || "—";
   const isSimpleSession = (r: MonitoringRow) => r.jenis_sesi === "Klinik PR" || r.jenis_sesi === "Trial Class";
+
+  // Status completion harus mengikuti jenis sesi + flag planning AuVi/LD.
+  // "Bukan sesi LD" hanya valid jika sesi tersebut memang bukan LD.
+  // Jika r.ld=true, satu-satunya status LD yang selesai adalah "Sudah report di CMS".
+  const isAuviComplete = (r: MonitoringRow) => {
+    const status = String(r.auvi_tv_status || "").trim();
+    if (!status) return false;
+    if (r.auvi_tv) {
+      return ["Tidak connect ke TV", "Connect ke TV", "✅ Connect AuVi TV"].includes(status);
+    }
+    return ["Bukan sesi AuVi TV", "❌ Bukan sesi AuVi TV", "✖️ Bukan sesi AuVi TV"].includes(status);
+  };
+
+  const isLdComplete = (r: MonitoringRow) => {
+    const status = String(r.ld_status || "").trim();
+    if (!status) return false;
+    return r.ld
+      ? status === "Sudah report di CMS"
+      : ["Bukan sesi LD"].includes(status);
+  };
+
+  const getMissingAdmin = (r: MonitoringRow) => {
+    if (isSimpleSession(r)) return r.attendance ? [] : ["Attendance"];
+    return [
+      !r.topik_sub_topik_done && "Topik/Subtopik",
+      !r.attendance && "Attendance",
+      !r.starchamps && "Starchamps",
+      !r.activity_score && "Activity Score",
+      !r.report_sessions && "Report Sessions",
+      !r.foto_kbm && "Foto KBM",
+      !r.report_wa && "Report WA",
+      !isAuviComplete(r) && "AuVi TV",
+      !isLdComplete(r) && "LD",
+    ].filter(Boolean) as string[];
+  };
+
   const adminDone = (r: MonitoringRow) => {
     if (isSimpleSession(r)) return r.attendance ? 1 : 0;
-    const auviTvDone = AUVISTATUSES.includes(r.auvi_tv_status);
-    const ldDone = r.ld_status === "Bukan sesi LD" || r.ld_status === "Sudah report di CMS";
-    return ADMIN_KEYS.filter(k => Boolean(r[k])).length + (auviTvDone ? 1 : 0) + (ldDone ? 1 : 0);
+    return ADMIN_KEYS.filter(k => Boolean(r[k])).length + (isAuviComplete(r) ? 1 : 0) + (isLdComplete(r) ? 1 : 0);
   };
   const adminTotal = (r: MonitoringRow) => isSimpleSession(r) ? 1 : ADMIN_KEYS.length + 2;
   const adminPercent = (r: MonitoringRow) => Math.round((adminDone(r) / adminTotal(r)) * 100);
@@ -121,11 +162,7 @@ export default function Monitoring() {
     Array.from(byMt.entries()).sort((a, b) => nameOf(mts, a[0]).localeCompare(nameOf(mts, b[0]))).forEach(([mtId, mtRows]) => {
       lines.push(`*${nameOf(mts, mtId)}*`);
       mtRows.forEach(row => {
-        const missing = isSimpleSession(row) ? (!row.attendance ? ["Attendance"] : []) : [
-          !row.topik_sub_topik_done && "Topik/Subtopik", !row.attendance && "Attendance", !row.starchamps && "Starchamps",
-          !row.activity_score && "Activity Score", !row.report_sessions && "Report Sessions", !row.foto_kbm && "Foto KBM",
-          !row.report_wa && "Report WA", !row.auvi_tv_status && "AuVi TV", !row.ld_status && "LD",
-        ].filter(Boolean) as string[];
+        const missing = getMissingAdmin(row);
         lines.push(
           `${number++}. ${nameOf(rombels, row.rombel_id)} · ${nameOf(mapels, row.mapel_id)} · ${row.jenis_sesi}`,
           `   ❌ ${missing.join(" · ")}`,
@@ -220,7 +257,7 @@ export default function Monitoring() {
           const done = adminDone(row); const total = adminTotal(row); const complete = done === total; const open = openId === row.id; const simple = isSimpleSession(row);
           return <article key={row.id} className={`monitoring-session-card ${complete ? "is-complete" : "is-incomplete"}`}>
             <button type="button" className="monitoring-card-header" onClick={() => setOpenId(open ? null : row.id)} aria-expanded={open}><div className="monitoring-session-info"><div className="monitoring-mt"><span className="monitoring-status-dot">{complete ? "✓" : "!"}</span>{nameOf(mts, row.mt_id)}</div><div className="monitoring-meta">{formatDate(row.planning_date)} · {nameOf(branches, row.branch_id)}</div><div className="monitoring-submeta">{nameOf(rombels, row.rombel_id)} · {nameOf(mapels, row.mapel_id)} · {row.jenis_sesi}</div></div><div className="monitoring-card-status"><span className={`monitoring-status ${complete ? "complete" : "incomplete"}`}>{complete ? "✅ Lengkap" : "🟡 Belum lengkap"}</span><strong>{done}/{total}</strong><span className="monitoring-chevron">{open ? "⌃" : "⌄"}</span></div></button>
-            {open && <div className="monitoring-card-body"><div className="monitoring-admin-title">KELENGKAPAN ADMINISTRASI <span>{done}/{total} selesai</span></div>{simple && <div className="card" style={{ marginBottom: 12, padding: 10, fontSize: 12, background: "#f8fafc" }}>ℹ️ Untuk {row.jenis_sesi}, cukup <strong>Attendance</strong> yang wajib diisi. Administrasi lainnya tidak memengaruhi status kelengkapan.</div>}<div className="monitoring-admin-grid">{checkboxItems.filter(([key]) => !simple || key === "attendance").map(([key, label]) => <label key={key} className={`admin-item ${row[key] ? "done" : "todo"}`}><input type="checkbox" checked={row[key]} disabled={saving === row.id} onChange={e => saveRow(row, { [key]: e.target.checked })} /><span>{label}</span><b>{row[key] ? "✓" : "—"}</b></label>)}{!simple && <><label className={`admin-item select-item ${row.auvi_tv_status ? "done" : "todo"}`}><span>📺 AuVi TV</span><select className="select monitoring-select" value={row.auvi_tv_status} disabled={saving === row.id} onChange={e => saveRow(row, { auvi_tv_status: e.target.value })}>{AUVISTATUSES.map(x => <option key={x}>{x}</option>)}</select></label><label className={`admin-item select-item ${row.ld_status ? "done" : "todo"}`}><span>👥 LD</span><select className="select monitoring-select" value={row.ld_status} disabled={saving === row.id} onChange={e => saveRow(row, { ld_status: e.target.value })}>{LDSTATUSES.map(x => <option key={x}>{x}</option>)}</select></label></>}</div><div className="monitoring-save-note">{saving === row.id ? "Menyimpan perubahan…" : "Perubahan tersimpan otomatis ke shared database."}</div></div>}
+            {open && <div className="monitoring-card-body"><div className="monitoring-admin-title">KELENGKAPAN ADMINISTRASI <span>{done}/{total} selesai</span></div>{simple && <div className="card" style={{ marginBottom: 12, padding: 10, fontSize: 12, background: "#f8fafc" }}>ℹ️ Untuk {row.jenis_sesi}, cukup <strong>Attendance</strong> yang wajib diisi. Administrasi lainnya tidak memengaruhi status kelengkapan.</div>}<div className="monitoring-admin-grid">{checkboxItems.filter(([key]) => !simple || key === "attendance").map(([key, label]) => <label key={key} className={`admin-item ${row[key] ? "done" : "todo"}`}><input type="checkbox" checked={row[key]} disabled={saving === row.id} onChange={e => saveRow(row, { [key]: e.target.checked })} /><span>{label}</span><b>{row[key] ? "✓" : "—"}</b></label>)}{!simple && <><label className={`admin-item select-item ${isAuviComplete(row) ? "done" : "todo"}`}><span>📺 AuVi TV</span><select className="select monitoring-select" value={row.auvi_tv_status || ""} disabled={saving === row.id} onChange={e => saveRow(row, { auvi_tv_status: e.target.value })}><option value="">— Pilih status —</option>{AUVISTATUSES.map(x => <option key={x}>{x}</option>)}</select></label><label className={`admin-item select-item ${isLdComplete(row) ? "done" : "todo"}`}><span>👥 LD</span><select className="select monitoring-select" value={row.ld_status || ""} disabled={saving === row.id} onChange={e => saveRow(row, { ld_status: e.target.value })}><option value="">— Pilih status —</option>{LDSTATUSES.map(x => <option key={x}>{x}</option>)}</select></label></>}</div><div className="monitoring-save-note">{saving === row.id ? "Menyimpan perubahan…" : "Perubahan tersimpan otomatis ke shared database."}</div></div>}
           </article>;
         })}
       </div>
