@@ -58,6 +58,8 @@ jobs:
         run: node scripts/patch-wa-screenshot-exact-logo-runtime-fix.js
       - name: Finalize Screenshot Footer Layout
         run: node scripts/patch-wa-screenshot-footer-final-v2.js
+      - name: Remove Empty Topik Placeholder Dash
+        run: node scripts/patch-wa-screenshot-remove-topic-dash.js
       - name: Patch Weekly Planning UI
         run: node scripts/patch-planning.js
       - name: Patch Weekly Planning Dropdowns
