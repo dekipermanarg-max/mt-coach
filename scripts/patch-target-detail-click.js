@@ -7,17 +7,10 @@ function addClickToCard(source, label, handler, ariaLabel, classNeedle = "card p
   const cardMarker = `<div className="${classNeedle}`;
   const cardStart = source.lastIndexOf(cardMarker, labelIndex);
   const tagEnd = source.indexOf(">", cardStart);
-  if (cardStart < 0 || tagEnd < 0 || tagEnd > labelIndex) {
-    throw new Error(`Target card container not found: ${label}`);
-  }
+  if (cardStart < 0 || tagEnd < 0 || tagEnd > labelIndex) throw new Error(`Target card container not found: ${label}`);
   const tag = source.slice(cardStart, tagEnd);
   const clickHint = `<div style={{ position: "absolute", right: 16, bottom: 12, fontSize: 11, fontWeight: 800, color: "#2563eb", letterSpacing: "0.04em" }}>LIHAT DETAIL ▾</div>`;
-  if (tag.includes("onClick=")) {
-    if (!source.slice(tagEnd, source.indexOf("</div>", tagEnd)).includes("LIHAT DETAIL")) {
-      return source.slice(0, tagEnd + 1) + clickHint + source.slice(tagEnd + 1);
-    }
-    return source;
-  }
+  if (tag.includes("onClick=")) return source;
   const attrs = ` onClick={() => ${handler}} role="button" tabIndex={0} aria-label="${ariaLabel}" style={{ cursor: "pointer", position: "relative" }} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") ${handler}; }}`;
   return source.slice(0, cardStart) + tag + attrs + ">" + clickHint + source.slice(tagEnd + 1);
 }
@@ -37,9 +30,7 @@ function patchMonitoring() {
   const fn = [
     '  async function showTargetDetail(kind: "auvi" | "ld") {',
     '    const rows = kind === "auvi" ? targetWeekRows.filter(r => r.auvi_tv && r.rombel_id) : targetWeekRows.filter(r => r.ld);',
-    '    const unique = kind === "auvi"',
-    '      ? Array.from(new Map(rows.map(r => [r.branch_id + ":" + r.rombel_id, r])).values())',
-    '      : rows;',
+    '    const unique = kind === "auvi" ? Array.from(new Map(rows.map(r => [r.branch_id + ":" + r.rombel_id, r])).values()) : rows;',
     '    const title = kind === "auvi" ? "🎥 Assignment AuVi TV" : "👥 Assignment LD";',
     '    const goal = kind === "auvi" ? targetAuviGoal : targetLdGoal;',
     '    const count = kind === "auvi" ? targetAuviRombels : targetLdSessions;',
@@ -82,9 +73,9 @@ function patchPlanning() {
     '    const endStr = end.toISOString().slice(0, 10);',
     '    const { data } = await supabase.from("weekly_planning").select("id,planning_date,auvi_tv,ld,mt_id,rombel_id,mapel_id").eq("branch_id", branchId).gte("planning_date", startStr).lte("planning_date", endStr);',
     '    const rows = (data || []) as PlanningRow[];',
-    '    const assigned = kind === "auvi" ? rows.filter(r => r.auvi_tv) : rows.filter(r => r.ld && r.rombel_id && !/(^|\\s)(kelas\\s*)?(12|xii)(\\s|$)/i.test(nameOf(rombelRows, r.rombel_id)));',
-    '    const unique = kind === "ld" ? Array.from(new Map(assigned.map(r => [r.rombel_id!, r])).values()) : assigned;',
-    '    const goal = kind === "auvi" ? 10 : (weeklyRombelPopulation ? Math.ceil(weeklyRombelPopulation * 0.5) : 0);',
+    '    const assigned = kind === "auvi" ? rows.filter(r => r.auvi_tv && r.rombel_id) : rows.filter(r => r.ld);',
+    '    const unique = kind === "auvi" ? Array.from(new Map(assigned.map(r => [r.rombel_id!, r])).values()) : assigned;',
+    '    const goal = kind === "auvi" ? (weeklyRombelPopulation ? Math.ceil(weeklyRombelPopulation * 0.5) : 0) : 10;',
     '    const title = kind === "auvi" ? "🎥 Assignment AuVi TV" : "👥 Assignment LD";',
     '    const root = document.getElementById("planning-target-detail");',
     '    if (!root) return;',
