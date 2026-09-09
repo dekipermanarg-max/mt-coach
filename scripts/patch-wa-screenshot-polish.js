@@ -10,9 +10,9 @@ if (start < 0 || end < 0) throw new Error("Screenshot generator markers not foun
 
 let fn = s.slice(start, end);
 
-const helpers = `      const drawPill = (x, y, w, h, text, bg, fg, font = "800 11px Arial") => {\n        fillRound(x, y, w, h, h / 2, bg);\n        ctx.fillStyle = fg; ctx.font = font; ctx.textAlign = "center"; ctx.textBaseline = "middle";\n        ctx.fillText(text, x + w / 2, y + h / 2 + 1);\n        ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";\n      };\n      const initials = (name) => String(name || "MT").split(/\\s+/).filter(Boolean).slice(0, 2).map(x => x[0]).join("").toUpperCase();\n\n`;
+const helpers = `      const drawPill = (x: number, y: number, w: number, h: number, text: string, bg: string, fg: string, font: string = "800 11px Arial") => {\n        fillRound(x, y, w, h, h / 2, bg);\n        ctx.fillStyle = fg; ctx.font = font; ctx.textAlign = "center"; ctx.textBaseline = "middle";\n        ctx.fillText(text, x + w / 2, y + h / 2 + 1);\n        ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";\n      };\n      const initials = (name: string | null | undefined) => String(name || "MT").split(/\\s+/).filter(Boolean).slice(0, 2).map((x: string) => x[0]).join("").toUpperCase();\n\n`;
 
-if (!fn.includes("const drawPill = (x, y, w, h, text, bg, fg")) {
+if (!fn.includes("const drawPill = (x: number, y: number, w: number, h: number")) {
   const loopMarker = fn.indexOf("      reportRows.forEach((row, index) => {");
   if (loopMarker < 0) throw new Error("Screenshot table row block not found");
   fn = fn.slice(0, loopMarker) + helpers + fn.slice(loopMarker);
