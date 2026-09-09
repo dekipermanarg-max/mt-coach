@@ -26,9 +26,12 @@ if (!s.includes('async function saveSessionEdit')) {
 
 const bodyNeedle = '<div className="monitoring-card-body"><div className="monitoring-admin-title">KELENGKAPAN ADMINISTRASI';
 const bodyReplace = '<div className="monitoring-card-body"><div className="monitoring-session-actions"><button type="button" className="secondary-btn" onClick={() => startEdit(row)}>✏️ Edit Sesi</button><button type="button" className="danger-btn" onClick={() => removeFromMonitoring(row)} disabled={deletingId === row.id}>{deletingId === row.id ? "⏳ Menghapus..." : "🗑️ Hapus"}</button></div><div className="monitoring-admin-title">KELENGKAPAN ADMINISTRASI';
+const currentActionNeedle = '<div className="monitoring-card-body"><div className="monitoring-session-actions"><span className="badge blue">AuVi: {row.auvi_tv ? "Ya" : "Tidak"} · LD: {row.ld ? "Ya" : "Tidak"}</span></div><div className="monitoring-admin-title">KELENGKAPAN ADMINISTRASI';
 if (!s.includes('monitoring-session-actions')) {
   if (!s.includes(bodyNeedle)) throw new Error('card body marker not found');
   s = s.replace(bodyNeedle, bodyReplace);
+} else if (s.includes(currentActionNeedle)) {
+  s = s.replace(currentActionNeedle, bodyReplace);
 }
 
 const beforeWaNeedle = '    {showWaReport && <div className="wa-modal-backdrop"';
