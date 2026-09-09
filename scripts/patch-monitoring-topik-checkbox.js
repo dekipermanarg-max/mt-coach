@@ -18,10 +18,10 @@ s = s.replace('ADMIN_KEYS.filter(k => Boolean(r[k])).length', 'ADMIN_KEYS.filter
 
 // Render the Topik checkbox/status from the actual topic value.
 s = s.replace(/checked=\{Boolean\(row\.topik_sub_topik_done\)\}/g, 'checked={isTopikDone(row)}');
-s = s.replace(/row\.topik_sub_topik_done \? "✓" : "—"/g, 'isTopikDone(row) ? "✓" : "—"');
+s = s.replace(/row\.topik_sub_topik_done \? "✓" : "—"/g, 'isTopikDone(row) ? "✓" : "✕"');
 
-// Do not allow a topic-content-derived check to be toggled into a false state.
-s = s.replace('onChange={e => saveRow(row, { topik_sub_topik_done: e.target.checked })}', 'onChange={e => saveRow(row, { topik_sub_topik_done: e.target.checked })}');
+// For all administration checklist items, use ✓ when complete and ✕ when incomplete.
+s = s.replace(/row\[key\] \? "✓" : "—"/g, 'row[key] ? "✓" : "✕"');
 
 // Report missing-list should also use the derived status.
 s = s.replace('!row.topik_sub_topik_done && "Topik/Subtopik"', '!isTopikDone(row) && "Topik/Subtopik"');
@@ -46,4 +46,4 @@ if (!s.includes('["topik_sub_topik_done", "Topik/Subtopik"]')) {
 s = s.replace(/className=\{`admin-item topik-check-item/g, 'className={`admin-item');
 
 fs.writeFileSync(file, s);
-console.log("Topik/Subtopik checklist now derives completion from topic/subtopic content");
+console.log("Topik/Subtopik and incomplete administration statuses now use explicit check/X indicators");
