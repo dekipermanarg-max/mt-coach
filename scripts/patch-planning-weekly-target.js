@@ -61,10 +61,12 @@ const effectAdd = `  useEffect(() => {
       if (cancelled) return;
       const planningRows = weekRes.data || [];
       const population = BRANCH_ROMBEL_COUNTS[branch] || new Set(planningRows.map(x => x.rombel_id).filter(Boolean)).size;
-      const auviSessions = planningRows.filter(x => x.auvi_tv).length;
-      const ldRombels = new Set(planningRows.filter(x => x.ld && x.rombel_id).map(x => x.rombel_id)).size;
-      setWeeklyAuviSessions(auviSessions);
-      setWeeklyLdRombels(ldRombels);
+      // AuVi target is based on unique rombels, not raw session count.
+      const auviRombels = new Set(planningRows.filter(x => x.auvi_tv && x.rombel_id).map(x => x.rombel_id)).size;
+      // LD target is based on number of LD sessions.
+      const ldSessions = planningRows.filter(x => x.ld).length;
+      setWeeklyAuviSessions(auviRombels);
+      setWeeklyLdRombels(ldSessions);
       setWeeklyRombelPopulation(population);
     }
     loadWeeklyTargets();
@@ -78,14 +80,14 @@ if (!s.includes("loadWeeklyTargets")) {
 }
 
 const auviCardRegex = /<div className="card planning-kpi"><div className="planning-kpi-top"><div className="kpi-label">(?:AuVi TV Coverage|AuVi TV Mingguan)<\/div>[\s\S]*?<\/div><div className="kpi-value">[\s\S]*?<\/div><div className="kpi-note">[\s\S]*?<\/div><\/div>/;
-const auviCard = '<div className="card planning-kpi"><div className="planning-kpi-top"><div className="kpi-label">AuVi TV Mingguan</div><div className="kpi-mini-icon">🎥</div></div><div className="kpi-value">{Math.min(100, Math.round((weeklyAuviSessions / 10) * 100))}%</div><div className="kpi-note">{weeklyAuviSessions}/10 sesi tercapai · target 10 sesi per minggu</div></div>';
+const auviCard = '<div className="card planning-kpi"><div className="planning-kpi-top"><div className="kpi-label">AuVi TV Mingguan</div><div className="kpi-mini-icon">🎥</div></div><div className="kpi-value">{weeklyAuviSessions}/{weeklyRombelPopulation ? Math.ceil(weeklyRombelPopulation * 0.5) : 0}</div><div className="kpi-note">≥ 50% rombel tercapai · target minimal 50% rombel per minggu</div></div>';
 if (s.includes("AuVi TV Coverage")) {
   if (!auviCardRegex.test(s)) throw new Error("AuVi KPI card marker not found");
   s = s.replace(auviCardRegex, auviCard);
 }
 
 const ldCardRegex = /<div className="card planning-kpi"><div className="planning-kpi-top"><div className="kpi-label">(?:LD|LD Mingguan)<\/div>[\s\S]*?<\/div><div className="kpi-value">[\s\S]*?<\/div><div className="kpi-note">[\s\S]*?<\/div><\/div>/;
-const ldCard = '<div className="card planning-kpi"><div className="planning-kpi-top"><div className="kpi-label">LD Mingguan</div><div className="kpi-mini-icon">👥</div></div><div className="kpi-value">{weeklyLdRombels}/{weeklyRombelPopulation ? Math.ceil(weeklyRombelPopulation * 0.5) : 0}</div><div className="kpi-note">Target 50% rombel per minggu</div></div>';
+const ldCard = '<div className="card planning-kpi"><div className="planning-kpi-top"><div className="kpi-label">LD Mingguan</div><div className="kpi-mini-icon">👥</div></div><div className="kpi-value">{weeklyLdRombels}/10</div><div className="kpi-note">Target 10 sesi per minggu</div></div>';
 if (s.includes(">LD</div>") || s.includes(">LD Mingguan</div>")) {
   const matches = s.match(new RegExp(ldCardRegex.source, "g")) || [];
   const ldMatch = matches.find(x => x.includes(">LD</div>") || x.includes(">LD Mingguan</div>"));
@@ -94,4 +96,4 @@ if (s.includes(">LD</div>") || s.includes(">LD Mingguan</div>")) {
 }
 
 fs.writeFileSync(file, s);
-console.log("Patched Weekly Planning live AuVi/LD targets by branch.");
+console.log("Patched Weekly Planning targets: AuVi >= 50% rombel/week; LD 10 sessions/week.");
