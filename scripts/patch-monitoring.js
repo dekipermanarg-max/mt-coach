@@ -3,6 +3,13 @@ const path = require("path");
 const file = path.join(process.cwd(), "app/monitoring/page.tsx");
 let s = fs.readFileSync(file, "utf8");
 
+// AuVi TV rule: when Planning marks a session as AuVi TV, only a successful TV connection completes the item.
+// "Tidak connect ke TV" is explicitly incomplete.
+s = s.replace(
+  'return ["Tidak connect ke TV", "Connect ke TV", "✅ Connect AuVi TV"].includes(status);',
+  'return ["Connect ke TV", "✅ Connect AuVi TV"].includes(status);'
+);
+
 const stateNeedle = '  const [waDate, setWaDate] = useState(() => new Date().toISOString().slice(0, 10));';
 const stateAdd = `\n  const [editingRow, setEditingRow] = useState<MonitoringRow | null>(null);\n  const [editForm, setEditForm] = useState({ planning_date: "", branch_id: "", mt_id: "", rombel_id: "", mapel_id: "", jenis_sesi: "KBM", auvi_tv: false, ld: false });\n  const [deletingId, setDeletingId] = useState<string | null>(null);`;
 if (!s.includes('const [editingRow, setEditingRow]')) {
