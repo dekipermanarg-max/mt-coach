@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Patch Monitoring UI
+        run: node scripts/patch-monitoring.js
       - name: Patch Monitoring Topik checkbox
         shell: python
         run: |
