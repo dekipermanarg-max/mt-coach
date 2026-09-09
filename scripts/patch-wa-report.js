@@ -56,3 +56,29 @@ const replacement = [
 s = s.slice(0, start) + replacement + s.slice(end);
 fs.writeFileSync(file, s);
 console.log("Applied agreed WhatsApp report wording:", file);
+
+function patchAdminCompleteness(targetFile, addLdField = false) {
+  const target = path.join(process.cwd(), targetFile);
+  let source = fs.readFileSync(target, "utf8");
+
+  if (addLdField) {
+    source = source.replace(
+      'attendance: boolean; topik_sub_topik_done: boolean;',
+      'attendance: boolean; ld: boolean; topik_sub_topik_done: boolean;'
+    );
+    source = source.replace(
+      'jenis_sesi,attendance,topik_sub_topik_done,starchamps,activity_score,report_sessions,foto_kbm,report_wa,auvi_tv_status,ld_status',
+      'jenis_sesi,attendance,ld,topik_sub_topik_done,starchamps,activity_score,report_sessions,foto_kbm,report_wa,auvi_tv_status,ld_status'
+    );
+  }
+
+  const oldCondition = '(s.ld_status === "Bukan sesi LD" || s.ld_status === "Sudah report di CMS")';
+  const newCondition = '(!s.ld || s.ld_status === "Sudah report di CMS")';
+  if (!source.includes(oldCondition)) throw new Error(`LD admin condition marker not found in ${targetFile}`);
+  source = source.replace(oldCondition, newCondition);
+  fs.writeFileSync(target, source);
+  console.log("Applied LD admin completeness fix:", targetFile);
+}
+
+patchAdminCompleteness("app/page.tsx", false);
+patchAdminCompleteness("app/performance/page.tsx", true);
