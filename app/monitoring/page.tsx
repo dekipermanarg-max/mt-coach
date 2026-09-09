@@ -115,6 +115,7 @@ export default function Monitoring() {
     let number = 1;
     Array.from(byMt.entries()).sort((a, b) => nameOf(mts, a[0]).localeCompare(nameOf(mts, b[0]))).forEach(([mtId, mtRows]) => {
       lines.push(`*${nameOf(mts, mtId)}*`);
+      lines.push("👉 Bantu kerjakan drill ... soal benar dan share bukti pengerjaannya di grup ini.");
       mtRows.forEach(row => {
         const missing = isSimpleSession(row) ? (!row.attendance ? ["Attendance"] : []) : [
           !row.topik_sub_topik_done && "Topik/Subtopik", !row.attendance && "Attendance", !row.starchamps && "Starchamps",
