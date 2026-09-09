@@ -60,6 +60,8 @@ jobs:
         run: node scripts/patch-wa-screenshot-footer-final-v2.js
       - name: Remove Empty Topik Placeholder Dash
         run: node scripts/patch-wa-screenshot-remove-topic-dash.js
+      - name: Polish Screenshot Table Design
+        run: node scripts/patch-wa-screenshot-polish.js
       - name: Patch Weekly Planning UI
         run: node scripts/patch-planning.js
       - name: Patch Weekly Planning Dropdowns
