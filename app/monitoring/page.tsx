@@ -68,7 +68,12 @@ export default function Monitoring() {
   useEffect(() => { load(); }, []);
   const nameOf = (list: MasterRow[], id: string | null) => list.find(x => x.id === id)?.name || "—";
   const isSimpleSession = (r: MonitoringRow) => r.jenis_sesi === "Klinik PR" || r.jenis_sesi === "Trial Class";
-  const adminDone = (r: MonitoringRow) => isSimpleSession(r) ? (r.attendance ? 1 : 0) : ADMIN_KEYS.filter(k => Boolean(r[k])).length + (r.auvi_tv_status ? 1 : 0) + (r.ld_status ? 1 : 0);
+  const adminDone = (r: MonitoringRow) => {
+    if (isSimpleSession(r)) return r.attendance ? 1 : 0;
+    const auviTvDone = AUVISTATUSES.includes(r.auvi_tv_status);
+    const ldDone = r.ld_status === "Bukan sesi LD" || r.ld_status === "Sudah report di CMS";
+    return ADMIN_KEYS.filter(k => Boolean(r[k])).length + (auviTvDone ? 1 : 0) + (ldDone ? 1 : 0);
+  };
   const adminTotal = (r: MonitoringRow) => isSimpleSession(r) ? 1 : ADMIN_KEYS.length + 2;
   const adminPercent = (r: MonitoringRow) => Math.round((adminDone(r) / adminTotal(r)) * 100);
 
