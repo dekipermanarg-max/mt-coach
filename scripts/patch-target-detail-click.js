@@ -33,16 +33,16 @@ function injectAccordionRoot(source, id, beforeMarker) {
 function patchMonitoring() {
   const file = path.join(process.cwd(), "app/monitoring/page.tsx");
   let s = fs.readFileSync(file, "utf8");
-  const marker = '  const ldProgress = targetLdGoal ? Math.min(100, Math.round((targetLdRombels / targetLdGoal) * 100)) : 0;';
+  const marker = '  const ldProgress = Math.min(100, Math.round((targetLdSessions / targetLdGoal) * 100));';
   const fn = [
     '  async function showTargetDetail(kind: "auvi" | "ld") {',
-    '    const rows = kind === "auvi" ? targetWeekRows.filter(r => r.auvi_tv) : targetWeekRows.filter(r => r.ld && r.rombel_id);',
-    '    const unique = kind === "ld"',
-    '      ? Array.from(new Map(rows.filter(r => !/(^|\\s)(kelas\\s*)?(12|xii)(\\s|$)/i.test(nameOf(rombels, r.rombel_id))).map(r => [r.rombel_id!, r])).values())',
+    '    const rows = kind === "auvi" ? targetWeekRows.filter(r => r.auvi_tv && r.rombel_id) : targetWeekRows.filter(r => r.ld);',
+    '    const unique = kind === "auvi"',
+    '      ? Array.from(new Map(rows.map(r => [r.branch_id + ":" + r.rombel_id, r])).values())',
     '      : rows;',
     '    const title = kind === "auvi" ? "🎥 Assignment AuVi TV" : "👥 Assignment LD";',
     '    const goal = kind === "auvi" ? targetAuviGoal : targetLdGoal;',
-    '    const count = kind === "auvi" ? targetAuviSessions : targetLdRombels;',
+    '    const count = kind === "auvi" ? targetAuviRombels : targetLdSessions;',
     '    const root = document.getElementById("monitoring-target-detail");',
     '    if (!root) return;',
     '    if (root.dataset.open === kind) { root.dataset.open = ""; root.innerHTML = ""; return; }',
@@ -59,7 +59,7 @@ function patchMonitoring() {
   }
   s = addClickToCard(s, "Target AuVi TV", 'showTargetDetail("auvi")', "Lihat detail assignment AuVi TV", "card planning-kpi monitoring-target-kpi monitoring-auvi-kpi");
   s = addClickToCard(s, "Target LD", 'showTargetDetail("ld")', "Lihat detail assignment LD", "card planning-kpi monitoring-target-kpi monitoring-ld-kpi");
-  s = injectAccordionRoot(s, "monitoring-target-detail", '    <section className="card monitoring-card-list">');
+  s = injectAccordionRoot(s, "monitoring-target-detail", '    <section className="card monitoring-list-card">');
   fs.writeFileSync(file, s);
   console.log("Patched Monitoring target cards with accordion details.");
 }
