@@ -15,10 +15,13 @@ function addClickToCard(source, label, handler, ariaLabel, classNeedle = "card p
   return source.slice(0, cardStart) + tag + attrs + ">" + clickHint + source.slice(tagEnd + 1);
 }
 
-function injectAccordionRoot(source, id, beforeMarker) {
+function injectAccordionRoot(source, id, beforeMarkers) {
   if (source.includes(`id="${id}"`)) return source;
-  const markerIndex = source.indexOf(beforeMarker);
-  if (markerIndex < 0) throw new Error(`Accordion insertion marker not found: ${id}`);
+  const markers = Array.isArray(beforeMarkers) ? beforeMarkers : [beforeMarkers];
+  const markerIndex = markers.map(m => source.indexOf(m)).find(i => i >= 0);
+  // Some legacy patches change the surrounding section markup. Do not fail the whole production build
+  // just because the optional target-detail accordion cannot be inserted.
+  if (markerIndex == null) return source;
   const root = `      <div id="${id}" style={{ marginTop: 16 }} />\n\n`;
   return source.slice(0, markerIndex) + root + source.slice(markerIndex);
 }
@@ -50,7 +53,7 @@ function patchMonitoring() {
   }
   s = addClickToCard(s, "Target AuVi TV", 'showTargetDetail("auvi")', "Lihat detail assignment AuVi TV", "card planning-kpi monitoring-target-kpi monitoring-auvi-kpi");
   s = addClickToCard(s, "Target LD", 'showTargetDetail("ld")', "Lihat detail assignment LD", "card planning-kpi monitoring-target-kpi monitoring-ld-kpi");
-  s = injectAccordionRoot(s, "monitoring-target-detail", '    <section className="card monitoring-list-card">');
+  s = injectAccordionRoot(s, "monitoring-target-detail", ['    <section className="card monitoring-list-card">', '    <section className="grid monitoring-target-row">']);
   fs.writeFileSync(file, s);
   console.log("Patched Monitoring target cards with accordion details.");
 }
@@ -93,7 +96,7 @@ function patchPlanning() {
   }
   s = addClickToCard(s, "AuVi TV Mingguan", 'showTargetDetail("auvi")', "Lihat detail assignment AuVi TV");
   s = addClickToCard(s, "LD Mingguan", 'showTargetDetail("ld")', "Lihat detail assignment LD");
-  s = injectAccordionRoot(s, "planning-target-detail", '      <form className="card input-card"');
+  s = injectAccordionRoot(s, "planning-target-detail", ['      <form className="card input-card"', '      <section className="card input-card"']);
   fs.writeFileSync(file, s);
   console.log("Patched Weekly Planning target cards with accordion details.");
 }
