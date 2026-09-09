@@ -76,24 +76,17 @@ export default function Monitoring() {
   const nameOf = (list: MasterRow[], id: string | null) => list.find(x => x.id === id)?.name || "—";
   const isSimpleSession = (r: MonitoringRow) => r.jenis_sesi === "Klinik PR" || r.jenis_sesi === "Trial Class";
 
-  // Status completion harus mengikuti jenis sesi + flag planning AuVi/LD.
-  // "Bukan sesi LD" hanya valid jika sesi tersebut memang bukan LD.
-  // Jika r.ld=true, satu-satunya status LD yang selesai adalah "Sudah report di CMS".
+  // Status yang dianggap lengkap hanya status yang dinyatakan user:
+  // AuVi TV: "Bukan sesi AuVi TV" atau "Connect ke TV".
+  // LD: "Bukan sesi LD" atau "Sudah report di CMS".
   const isAuviComplete = (r: MonitoringRow) => {
     const status = String(r.auvi_tv_status || "").trim();
-    if (!status) return false;
-    if (r.auvi_tv) {
-      return ["Tidak connect ke TV", "Connect ke TV", "✅ Connect AuVi TV"].includes(status);
-    }
-    return ["Bukan sesi AuVi TV", "❌ Bukan sesi AuVi TV", "✖️ Bukan sesi AuVi TV"].includes(status);
+    return status === "Bukan sesi AuVi TV" || status === "Connect ke TV";
   };
 
   const isLdComplete = (r: MonitoringRow) => {
     const status = String(r.ld_status || "").trim();
-    if (!status) return false;
-    return r.ld
-      ? status === "Sudah report di CMS"
-      : ["Bukan sesi LD"].includes(status);
+    return status === "Bukan sesi LD" || status === "Sudah report di CMS";
   };
 
   const getMissingAdmin = (r: MonitoringRow) => {
