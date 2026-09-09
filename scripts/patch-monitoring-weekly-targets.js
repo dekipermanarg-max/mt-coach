@@ -55,12 +55,15 @@ if (!s.includes("const targetWeekRows")) {
   s = s.replace(stateNeedle, stateNeedle + "\n" + stateBlock);
 }
 
-// Current Monitoring already has its four summary KPI cards. Add the two weekly target cards
-// immediately before the session list so the target rules are visible without disturbing the summary.
+// Support both the newer and restored Monitoring list markup.
 if (!s.includes("monitoring-target-kpi")) {
-  const listNeedle = '<section className="card monitoring-list-card">';
+  const listNeedles = [
+    '<section className="card monitoring-list-card">',
+    '<section className="card monitoring-card-list">',
+  ];
+  const listNeedle = listNeedles.find(needle => s.includes(needle));
   const targetSection = `<section className="grid monitoring-target-row"><div className="card planning-kpi monitoring-target-kpi monitoring-auvi-kpi"><div className="kpi-label">Target AuVi TV</div><div className="kpi-value">{targetAuviRombels}/{targetAuviGoal}</div><div className="kpi-note">≥ 50% rombel per minggu · {auviProgress}%</div></div><div className="card planning-kpi monitoring-target-kpi monitoring-ld-kpi"><div className="kpi-label">Target LD</div><div className="kpi-value">{targetLdSessions}/{targetLdGoal}</div><div className="kpi-note">10 sesi per minggu · {ldProgress}%</div></div></section>`;
-  if (!s.includes(listNeedle)) throw new Error("Monitoring list marker not found");
+  if (!listNeedle) throw new Error("Monitoring list marker not found");
   s = s.replace(listNeedle, targetSection + listNeedle);
 }
 
