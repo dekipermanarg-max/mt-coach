@@ -24,76 +24,30 @@ if (!s.includes("const BRANCH_ROMBEL_COUNTS")) {
 }
 
 const stateNeedle = '  const [ld, setLd] = useState(false);';
-const stateAdd = `
-  const [weeklyAuviSessions, setWeeklyAuviSessions] = useState(0);
-  const [weeklyLdRombels, setWeeklyLdRombels] = useState(0);
-  const [weeklyRombelPopulation, setWeeklyRombelPopulation] = useState(0);`;
+const stateAdd = `\n  const [weeklyAuviSessions, setWeeklyAuviSessions] = useState(0);\n  const [weeklyLdRombels, setWeeklyLdRombels] = useState(0);\n  const [weeklyRombelPopulation, setWeeklyRombelPopulation] = useState(0);`;
 if (!s.includes("weeklyAuviSessions")) {
   if (!s.includes(stateNeedle)) throw new Error("weekly KPI state marker not found");
   s = s.replace(stateNeedle, stateNeedle + stateAdd);
 }
 
 const marker = '  const selectedDateLabel = date ? formatDate(date) : "";';
-const effectAdd = `  useEffect(() => {
-    let cancelled = false;
-    async function loadWeeklyTargets() {
-      if (!branchId || !branch || !date) {
-        setWeeklyAuviSessions(0);
-        setWeeklyLdRombels(0);
-        setWeeklyRombelPopulation(branch ? (BRANCH_ROMBEL_COUNTS[branch] || 0) : 0);
-        return;
-      }
-      const base = new Date(date + "T00:00:00");
-      const day = base.getDay();
-      const diff = day === 0 ? -6 : 1 - day;
-      const start = new Date(base);
-      start.setDate(base.getDate() + diff);
-      const end = new Date(start);
-      end.setDate(start.getDate() + 6);
-      const startDate = start.toISOString().slice(0, 10);
-      const endDate = end.toISOString().slice(0, 10);
-      const weekRes = await supabase
-        .from("weekly_planning")
-        .select("rombel_id,auvi_tv,ld,status")
-        .eq("branch_id", branchId)
-        .gte("planning_date", startDate)
-        .lte("planning_date", endDate);
-      if (cancelled) return;
-      const planningRows = weekRes.data || [];
-      const population = BRANCH_ROMBEL_COUNTS[branch] || new Set(planningRows.map(x => x.rombel_id).filter(Boolean)).size;
-      // AuVi target is based on unique rombels, not raw session count.
-      const auviRombels = new Set(planningRows.filter(x => x.auvi_tv && x.rombel_id).map(x => x.rombel_id)).size;
-      // LD target is based on number of LD sessions.
-      const ldSessions = planningRows.filter(x => x.ld).length;
-      setWeeklyAuviSessions(auviRombels);
-      setWeeklyLdRombels(ldSessions);
-      setWeeklyRombelPopulation(population);
-    }
-    loadWeeklyTargets();
-    return () => { cancelled = true; };
-  }, [branchId, branch, date, sessions]);
-
-`;
 if (!s.includes("loadWeeklyTargets")) {
+  const effectAdd = `  useEffect(() => {\n    let cancelled = false;\n    async function loadWeeklyTargets() {\n      if (!branchId || !branch || !date) {\n        setWeeklyAuviSessions(0); setWeeklyLdRombels(0);\n        setWeeklyRombelPopulation(branch ? (BRANCH_ROMBEL_COUNTS[branch] || 0) : 0);\n        return;\n      }\n      const base = new Date(date + "T00:00:00");\n      const day = base.getDay();\n      const diff = day === 0 ? -6 : 1 - day;\n      const start = new Date(base); start.setDate(base.getDate() + diff);\n      const end = new Date(start); end.setDate(start.getDate() + 6);\n      const startDate = start.toISOString().slice(0, 10);\n      const endDate = end.toISOString().slice(0, 10);\n      const weekRes = await supabase.from("weekly_planning").select("rombel_id,auvi_tv,ld,status").eq("branch_id", branchId).gte("planning_date", startDate).lte("planning_date", endDate);\n      if (cancelled) return;\n      const planningRows = weekRes.data || [];\n      const population = BRANCH_ROMBEL_COUNTS[branch] || new Set(planningRows.map(x => x.rombel_id).filter(Boolean)).size;\n      const auviSessions = planningRows.filter(x => x.auvi_tv).length;\n      const ldRombels = new Set(planningRows.filter(x => x.ld && x.rombel_id).map(x => x.rombel_id)).size;\n      setWeeklyAuviSessions(auviSessions);\n      setWeeklyLdRombels(ldRombels);\n      setWeeklyRombelPopulation(population);\n    }\n    loadWeeklyTargets();\n    return () => { cancelled = true; };\n  }, [branchId, branch, date, sessions]);\n\n`;
   if (!s.includes(marker)) throw new Error("weekly KPI marker not found");
   s = s.replace(marker, effectAdd + marker);
 }
 
+const auviCard = '<div className="card planning-kpi"><div className="planning-kpi-top"><div className="kpi-label">AuVi TV Mingguan</div><div className="kpi-mini-icon">🎥</div></div><div className="kpi-value">{weeklyAuviSessions}/10</div><div className="kpi-note">Target 10 sesi per minggu</div></div>';
 const auviCardRegex = /<div className="card planning-kpi"><div className="planning-kpi-top"><div className="kpi-label">(?:AuVi TV Coverage|AuVi TV Mingguan)<\/div>[\s\S]*?<\/div><div className="kpi-value">[\s\S]*?<\/div><div className="kpi-note">[\s\S]*?<\/div><\/div>/;
-const auviCard = '<div className="card planning-kpi"><div className="planning-kpi-top"><div className="kpi-label">AuVi TV Mingguan</div><div className="kpi-mini-icon">🎥</div></div><div className="kpi-value">{weeklyAuviSessions}/{weeklyRombelPopulation ? Math.ceil(weeklyRombelPopulation * 0.5) : 0}</div><div className="kpi-note">≥ 50% rombel tercapai · target minimal 50% rombel per minggu</div></div>';
-if (s.includes("AuVi TV Coverage")) {
-  if (!auviCardRegex.test(s)) throw new Error("AuVi KPI card marker not found");
-  s = s.replace(auviCardRegex, auviCard);
-}
+if (auviCardRegex.test(s)) s = s.replace(auviCardRegex, auviCard);
 
+const ldCard = '<div className="card planning-kpi"><div className="planning-kpi-top"><div className="kpi-label">LD Mingguan</div><div className="kpi-mini-icon">👥</div></div><div className="kpi-value">{weeklyLdRombels}/{weeklyRombelPopulation ? Math.ceil(weeklyRombelPopulation * 0.5) : 0}</div><div className="kpi-note">≥ 50% unique rombel per minggu</div></div>';
 const ldCardRegex = /<div className="card planning-kpi"><div className="planning-kpi-top"><div className="kpi-label">(?:LD|LD Mingguan)<\/div>[\s\S]*?<\/div><div className="kpi-value">[\s\S]*?<\/div><div className="kpi-note">[\s\S]*?<\/div><\/div>/;
-const ldCard = '<div className="card planning-kpi"><div className="planning-kpi-top"><div className="kpi-label">LD Mingguan</div><div className="kpi-mini-icon">👥</div></div><div className="kpi-value">{weeklyLdRombels}/10</div><div className="kpi-note">Target 10 sesi per minggu</div></div>';
-if (s.includes(">LD</div>") || s.includes(">LD Mingguan</div>")) {
+if (ldCardRegex.test(s)) {
   const matches = s.match(new RegExp(ldCardRegex.source, "g")) || [];
-  const ldMatch = matches.find(x => x.includes(">LD</div>") || x.includes(">LD Mingguan</div>"));
-  if (!ldMatch) throw new Error("LD KPI card marker not found");
-  s = s.replace(ldMatch, ldCard);
+  const match = matches.find(x => x.includes(">LD</div>") || x.includes(">LD Mingguan</div>"));
+  if (match) s = s.replace(match, ldCard);
 }
 
 fs.writeFileSync(file, s);
-console.log("Patched Weekly Planning targets: AuVi >= 50% rombel/week; LD 10 sessions/week.");
+console.log("Patched Weekly Planning targets: LD >= 50% unique rombels; AuVi TV 10 sessions/week.");
