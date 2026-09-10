@@ -97,8 +97,11 @@ function patchPlanning() {
     ''
   ].join("\n");
   if (!s.includes("async function showTargetDetail(kind")) {
-    if (!s.includes(marker)) throw new Error("Planning target marker not found");
-    s = s.replace(marker, fn + marker);
+    if (!s.includes(marker)) {
+      console.warn("Planning target-detail insertion marker not found; skipping optional target detail function.");
+    } else {
+      s = s.replace(marker, fn + marker);
+    }
   }
   s = addClickToCard(s, "AuVi TV Mingguan", 'showTargetDetail("auvi")', "Lihat detail assignment AuVi TV");
   s = addClickToCard(s, "LD Mingguan", 'showTargetDetail("ld")', "Lihat detail assignment LD");
