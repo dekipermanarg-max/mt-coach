@@ -5,28 +5,8 @@ const file = path.join(process.cwd(), "app/monitoring/page.tsx");
 let s = fs.readFileSync(file, "utf8");
 
 // Correct weekly target rules:
-// - LD: minimum 50% of unique rombels.
-// - AuVi TV: 10 sessions per week.
-const BRANCH_ROMBEL_COUNTS = {
-  "Padang - Ujung Gurun": 2,
-  "Padang - Tarandam": 6,
-  "Padang - Sutomo": 11,
-  "Padang - S. Parman": 6,
-  "Padang - Gajah Mada": 10,
-  "Solok - Pandan": 6,
-  "Payakumbuh - Simpang Benteng": 9,
-  "Painan - Pagaruyung": 6,
-  "Bukittinggi - Manggis Ganting": 5,
-  "Bukittinggi - Jambu Air": 6,
-};
-
-const countsBlock = `const MONITORING_BRANCH_ROMBEL_COUNTS: Record<string, number> = ${JSON.stringify(BRANCH_ROMBEL_COUNTS, null, 2)};\n`;
-if (!s.includes("const MONITORING_BRANCH_ROMBEL_COUNTS")) {
-  const branchNeedle = 'const AUVISTATUSES = [';
-  if (!s.includes(branchNeedle)) throw new Error("Monitoring constants marker not found");
-  s = s.replace(branchNeedle, countsBlock + branchNeedle);
-}
-
+// - AuVi TV: minimum 50% of unique rombels that are actually running/planned in the week.
+// - LD: 10 sessions per week.
 const stateNeedle = '  const incompleteCount = incompleteRows.length;';
 const stateBlock = `  const targetWeekBase = new Date((startDate || new Date().toISOString().slice(0, 10)) + "T00:00:00");
   const targetWeekDay = targetWeekBase.getDay();
@@ -39,29 +19,31 @@ const stateBlock = `  const targetWeekBase = new Date((startDate || new Date().t
   const targetWeekEndStr = targetWeekEnd.toISOString().slice(0, 10);
   const targetWeekRows = filtered.filter(r => r.planning_date >= targetWeekStartStr && r.planning_date <= targetWeekEndStr);
 
-  // LD achievement = unique rombels that have at least one LD session in the week.
-  const targetLdRombels = new Set(targetWeekRows.filter(r => r.ld && r.rombel_id).map(r => r.rombel_id)).size;
-  // AuVi achievement = number of AuVi TV sessions in the week.
-  const targetAuviSessions = targetWeekRows.filter(r => r.auvi_tv).length;
+  // AuVi achievement = unique rombels with at least one AuVi TV session in the week.
+  const targetRunningRombels = new Set(targetWeekRows.map(r => r.rombel_id).filter(Boolean)).size;
+  const targetAuviRombels = new Set(targetWeekRows.filter(r => r.auvi_tv && r.rombel_id).map(r => r.rombel_id)).size;
+  // LD achievement = number of LD sessions in the week.
+  const targetLdSessions = targetWeekRows.filter(r => r.ld).length;
 
-  const targetBranches = branchId === "all" ? Object.keys(MONITORING_BRANCH_ROMBEL_COUNTS) : [nameOf(branches, branchId)];
-  const targetRombelPopulation = targetBranches.reduce((sum, branchName) => sum + (MONITORING_BRANCH_ROMBEL_COUNTS[branchName] || 0), 0);
-  const targetLdGoal = Math.ceil(targetRombelPopulation * 0.5);
-  const targetAuviGoal = 10;
-  const ldProgress = targetLdGoal ? Math.min(100, Math.round((targetLdRombels / targetLdGoal) * 100)) : 0;
-  const auviProgress = Math.min(100, Math.round((targetAuviSessions / targetAuviGoal) * 100));
+  const targetAuviGoal = Math.ceil(targetRunningRombels * 0.5);
+  const targetLdGoal = 10;
+  const auviProgress = targetAuviGoal ? Math.min(100, Math.round((targetAuviRombels / targetAuviGoal) * 100)) : 0;
+  const ldProgress = Math.min(100, Math.round((targetLdSessions / targetLdGoal) * 100));
 `;
 
 if (s.includes("const targetWeekRows")) {
-  const blockRegex = /  const targetWeekRows = filtered\.filter\(r => r\.planning_date >= targetWeekStartStr && r\.planning_date <= targetWeekEndStr\);[\s\S]*?  const ldProgress = Math\.min\(100, Math\.round\(\(targetLdSessions \/ targetLdGoal\) \* 100\)\);\n/;
-  if (!blockRegex.test(s)) throw new Error("Existing Monitoring target block not found");
-  s = s.replace(blockRegex, stateBlock);
+  const start = s.indexOf('  const targetWeekRows =');
+  const endMarker = '  const ldProgress = Math.min(100, Math.round((targetLdSessions / targetLdGoal) * 100));';
+  const end = s.indexOf(endMarker, start);
+  if (start < 0 || end < 0) throw new Error("Existing Monitoring target block not found");
+  const endPos = end + endMarker.length;
+  s = s.slice(0, start) + stateBlock.trimEnd() + s.slice(endPos);
 } else {
   if (!s.includes(stateNeedle)) throw new Error("Monitoring summary marker not found");
   s = s.replace(stateNeedle, stateNeedle + "\n" + stateBlock);
 }
 
-const targetSection = `<section className="grid monitoring-target-row"><div className="card planning-kpi monitoring-target-kpi monitoring-ld-kpi"><div className="kpi-label">Target LD</div><div className="kpi-value">{targetLdRombels}/{targetLdGoal}</div><div className="kpi-note">≥ 50% unique rombel · {ldProgress}%</div></div><div className="card planning-kpi monitoring-target-kpi monitoring-auvi-kpi"><div className="kpi-label">Target AuVi TV</div><div className="kpi-value">{targetAuviSessions}/{targetAuviGoal}</div><div className="kpi-note">10 sesi per minggu · {auviProgress}%</div></div></section>`;
+const targetSection = `<section className="grid monitoring-target-row"><div className="card planning-kpi monitoring-target-kpi monitoring-auvi-kpi"><div className="kpi-label">Target AuVi TV</div><div className="kpi-value">{targetAuviRombels}/{targetAuviGoal}</div><div className="kpi-note">≥ 50% unique rombel · {auviProgress}%</div></div><div className="card planning-kpi monitoring-target-kpi monitoring-ld-kpi"><div className="kpi-label">Target LD</div><div className="kpi-value">{targetLdSessions}/{targetLdGoal}</div><div className="kpi-note">10 sesi per minggu · {ldProgress}%</div></div></section>`;
 
 const sectionRegex = /<section className="grid monitoring-target-row">[\s\S]*?<\/section>/;
 if (sectionRegex.test(s)) {
@@ -84,4 +66,4 @@ if (!s.includes("monitoring-target-row")) {
 }
 
 fs.writeFileSync(file, s);
-console.log("Applied Monitoring targets: LD >= 50% unique rombels; AuVi TV 10 sessions/week");
+console.log("Applied Monitoring targets: AuVi TV >= 50% unique running rombels; LD 10 sessions/week");
