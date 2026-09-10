@@ -47,7 +47,6 @@ function defaultStart() {
 
 export default function Home() {
   const [mts, setMts] = useState<MasterRow[]>([]);
-  const [rombels, setRombels] = useState<MasterRow[]>([]);
   const [branches, setBranches] = useState<MasterRow[]>([]);
   const [sessions, setSessions] = useState<SessionRow[]>([]);
   const [branch, setBranch] = useState("all");
@@ -58,15 +57,13 @@ export default function Home() {
       setLoading(true);
       const startDate = defaultStart();
       const endDate = new Date().toISOString().slice(0, 10);
-      const [b, mt, r, s] = await Promise.all([
+      const [b, mt, s] = await Promise.all([
         supabase.from("branches").select("id,name,active").eq("active", true).order("name"),
         supabase.from("master_mt").select("id,name,branch_id,active").eq("active", true).order("name"),
-        supabase.from("master_rombel").select("id,name,branch_id,active").eq("active", true).order("name"),
         supabase.from("weekly_planning").select("id,planning_date,branch_id,mt_id,rombel_id,jenis_sesi,status,auvi_tv,ld,auvi_tv_status,ld_status,attendance,topik_sub_topik_done,starchamps,activity_score,report_sessions,foto_kbm,report_wa").eq("status", "Finalized").gte("planning_date", startDate).lte("planning_date", endDate).order("planning_date", { ascending: false }),
       ]);
       setBranches((b.data || []) as MasterRow[]);
       setMts((mt.data || []) as MasterRow[]);
-      setRombels((r.data || []) as MasterRow[]);
       setSessions((s.data || []) as SessionRow[]);
       setLoading(false);
     }
@@ -78,15 +75,14 @@ export default function Home() {
   const activeMTs = useMemo(() => branch === "all"
     ? mts.filter(m => m.active !== false)
     : mts.filter(m => m.active !== false && m.branch_id === branch), [mts, branch]);
-  const branchRombels = useMemo(() => branch === "all" ? rombels : rombels.filter(r => r.branch_id === branch), [rombels, branch]);
 
   const planned = visibleSessions.length;
   const realized = visibleSessions.filter(s => s.attendance || s.status === "Realized").length;
   const sessionCompletion = planned ? ((realized / planned) * 100).toFixed(1) : "0.0";
+  const runningRombels = new Set(visibleSessions.map(s => s.rombel_id).filter(Boolean)).size;
   const auviRombels = new Set(visibleSessions.filter(s => s.auvi_tv_status === "Connect ke TV" || s.auvi_tv).map(s => s.rombel_id).filter(Boolean)).size;
-  const auviCoverage = branchRombels.length ? Math.round((auviRombels / branchRombels.length) * 100) : 0;
+  const auviCoverage = runningRombels ? Math.round((auviRombels / runningRombels) * 100) : 0;
   const ldCount = visibleSessions.filter(s => s.ld_status === "Sudah report di CMS" || s.ld).length;
-  const auviTargetRombels = Math.ceil(branchRombels.length * AUVI_WEEKLY_TARGET_PERCENT / 100);
 
   const performance = useMemo(() => activeMTs.map(mt => {
     const own = visibleSessions.filter(s => s.mt_id === mt.id);
@@ -106,11 +102,11 @@ export default function Home() {
       <section className="planning-hero"><div className="planning-hero-row"><div><div className="eyebrow">MT COACH · OVERVIEW</div><h1>Dashboard</h1><p>Ringkasan planning, monitoring, dan performa MT Coach.</p></div><span className="badge planning-status">🏠 Overview</span></div></section>
       <div className="dashboard-filters"><select className="select" value={branch} onChange={e => setBranch(e.target.value)}><option value="all">Semua Cabang</option>{branchesList.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></div>
       {loading ? <div className="card"><div className="kpi-note">Memuat data Monitoring...</div></div> : <>
-        <section className="grid"><div className="card"><div className="kpi-label">Session Completion</div><div className="kpi-value">{sessionCompletion}%</div><div className="kpi-note">{realized} / {planned} realized</div></div><div className="card"><div className="kpi-label">AuVi TV Weekly Target</div><div className="kpi-value">{auviCoverage}%</div><div className="kpi-note">Target ≥ {AUVI_WEEKLY_TARGET_PERCENT}% unique rombel · {auviRombels}/{branchRombels.length}</div></div><div className="card"><div className="kpi-label">LD Weekly Target</div><div className="kpi-value">{ldCount} / {LD_WEEKLY_TARGET}</div><div className="kpi-note">Target {LD_WEEKLY_TARGET} sesi / minggu</div></div><div className="card"><div className="kpi-label">Active MT</div><div className="kpi-value">{activeMTs.length}</div><div className="kpi-note">{branch === "all" ? "Total semua cabang" : "MT dengan base di cabang ini"}</div></div></section>
+        <section className="grid"><div className="card"><div className="kpi-label">Session Completion</div><div className="kpi-value">{sessionCompletion}%</div><div className="kpi-note">{realized} / {planned} realized</div></div><div className="card"><div className="kpi-label">AuVi TV Weekly Target</div><div className="kpi-value">{auviCoverage}%</div><div className="kpi-note">Target ≥ {AUVI_WEEKLY_TARGET_PERCENT}% unique rombel · {auviRombels}/{runningRombels}</div></div><div className="card"><div className="kpi-label">LD Weekly Target</div><div className="kpi-value">{ldCount} / {LD_WEEKLY_TARGET}</div><div className="kpi-note">Target {LD_WEEKLY_TARGET} sesi / minggu</div></div><div className="card"><div className="kpi-label">Active MT</div><div className="kpi-value">{activeMTs.length}</div><div className="kpi-note">{branch === "all" ? "Total semua cabang" : "MT dengan base di cabang ini"}</div></div></section>
         <section className="section"><div className="section-head"><h2>⚠️ Needs Attention</h2></div>
           <div className="grid attention-grid">
             <div className="card attention-card"><div className="section-head"><div><h3>👤 MT</h3><div className="kpi-note">Kelengkapan administrasi di bawah 90%</div></div><Link className="badge yellow" href="/performance">Lihat Performance →</Link></div>{mtAttention.length ? <div className="attention">{mtAttention.map(r => <div className="alert" key={r.id}><div><strong>{r.name}</strong><small>Admin {r.admin}% · {r.planned - r.complete} sesi belum lengkap</small></div></div>)}</div> : <div className="alert"><div><strong>✅ All good</strong><small>Tidak ada MT dengan administrasi di bawah 90%.</small></div></div>}</div>
-            <div className="card attention-card"><div className="section-head"><div><h3>📺 AuVi TV + LD</h3><div className="kpi-note">Assignment & administrasi yang perlu diperhatikan</div></div><Link className="badge yellow" href="/monitoring">Lihat Monitoring →</Link></div><div className="attention">{auviCoverage < AUVI_WEEKLY_TARGET_PERCENT && <div className="alert"><div><strong>📺 AuVi TV belum mencapai target</strong><small>{auviCoverage}% coverage · target ≥ {AUVI_WEEKLY_TARGET_PERCENT}% unique rombel ({auviRombels}/{branchRombels.length}).</small></div></div>}{ldCount < LD_WEEKLY_TARGET && <div className="alert"><div><strong>📝 LD belum mencapai target mingguan</strong><small>{ldCount}/{LD_WEEKLY_TARGET} sesi · target {LD_WEEKLY_TARGET} sesi per minggu.</small></div></div>}{!changedCount && auviCoverage >= AUVI_WEEKLY_TARGET_PERCENT && ldCount >= LD_WEEKLY_TARGET && <div className="alert"><div><strong>✅ All good</strong><small>AuVi TV dan LD sudah memenuhi target.</small></div></div>}{changedCount > 0 && <div className="alert"><div><strong>🔄 {changedCount} sesi changed</strong><small>Ada sesi yang mengalami perubahan.</small></div><Link className="badge yellow" href="/monitoring">Lihat Sesi →</Link></div>}</div></div>
+            <div className="card attention-card"><div className="section-head"><div><h3>📺 AuVi TV + LD</h3><div className="kpi-note">Assignment & administrasi yang perlu diperhatikan</div></div><Link className="badge yellow" href="/monitoring">Lihat Monitoring →</Link></div><div className="attention">{auviCoverage < AUVI_WEEKLY_TARGET_PERCENT && <div className="alert"><div><strong>📺 AuVi TV belum mencapai target</strong><small>{auviCoverage}% coverage · target ≥ {AUVI_WEEKLY_TARGET_PERCENT}% unique rombel ({auviRombels}/{runningRombels}).</small></div></div>}{ldCount < LD_WEEKLY_TARGET && <div className="alert"><div><strong>📝 LD belum mencapai target mingguan</strong><small>{ldCount}/{LD_WEEKLY_TARGET} sesi · target {LD_WEEKLY_TARGET} sesi per minggu.</small></div></div>}{!changedCount && auviCoverage >= AUVI_WEEKLY_TARGET_PERCENT && ldCount >= LD_WEEKLY_TARGET && <div className="alert"><div><strong>✅ All good</strong><small>AuVi TV dan LD sudah memenuhi target.</small></div></div>}{changedCount > 0 && <div className="alert"><div><strong>🔄 {changedCount} sesi changed</strong><small>Ada sesi yang mengalami perubahan.</small></div><Link className="badge yellow" href="/monitoring">Lihat Sesi →</Link></div>}</div></div>
           </div>
         </section>
         <section className="section"><div className="section-head"><div><h2>🏆 MT Performance</h2><div className="kpi-note">Top 5 · Ranking berdasarkan kelengkapan administrasi · 7 hari terakhir</div></div><Link className="kpi-note" href="/performance">Lihat semua →</Link></div><div className="table-wrap"><table><thead><tr><th>#</th><th>MT</th><th>Finalized</th><th>Admin Lengkap</th><th>Admin</th><th>Status</th></tr></thead><tbody>{performance.map((r, i) => <tr key={r.id}><td>{i < 3 ? ["🥇", "🥈", "🥉"][i] : i + 1}</td><td><strong>{r.name}</strong></td><td>{r.planned}</td><td>{r.complete}</td><td className="score">{r.admin}%</td><td><span className={`badge ${r.admin >= 95 ? "green" : r.admin >= 90 ? "blue" : r.admin >= 75 ? "yellow" : "red"}`}>{r.admin >= 95 ? "Excellent" : r.admin >= 90 ? "Good" : r.admin >= 75 ? "Attention" : "Critical"}</span></td></tr>)}</tbody></table></div></section>
