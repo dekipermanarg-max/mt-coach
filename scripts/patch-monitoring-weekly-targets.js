@@ -5,27 +5,10 @@ const file = path.join(process.cwd(), "app/monitoring/page.tsx");
 let s = fs.readFileSync(file, "utf8");
 
 // Weekly Planning target rules:
-// - AuVi TV: minimum 50% of rombel population per week.
+// - AuVi TV: minimum 50% of unique rombels actually running/planned in the week.
 // - LD: 10 sessions per week.
-const branchCounts = {
-  "Padang - Ujung Gurun": 2,
-  "Padang - Tarandam": 6,
-  "Padang - Sutomo": 11,
-  "Padang - S. Parman": 6,
-  "Padang - Gajah Mada": 10,
-  "Solok - Pandan": 6,
-  "Payakumbuh - Simpang Benteng": 9,
-  "Painan - Pagaruyung": 6,
-  "Bukittinggi - Manggis Ganting": 5,
-  "Bukittinggi - Jambu Air": 6,
-};
-
-const countsBlock = `const MONITORING_BRANCH_ROMBEL_COUNTS: Record<string, number> = ${JSON.stringify(branchCounts, null, 2)};\n`;
-if (!s.includes("const MONITORING_BRANCH_ROMBEL_COUNTS")) {
-  const branchNeedle = 'const AUVISTATUSES = [';
-  if (!s.includes(branchNeedle)) throw new Error("Monitoring constants marker not found");
-  s = s.replace(branchNeedle, countsBlock + branchNeedle);
-}
+// The AuVi denominator must come from the finalized sessions in the selected week,
+// not from a hardcoded branch population.
 
 const stateNeedle = '  const incompleteCount = incompleteRows.length;';
 const stateBlock = `  const targetWeekBase = new Date((startDate || new Date().toISOString().slice(0, 10)) + "T00:00:00");
@@ -38,14 +21,10 @@ const stateBlock = `  const targetWeekBase = new Date((startDate || new Date().t
   const targetWeekStartStr = targetWeekStart.toISOString().slice(0, 10);
   const targetWeekEndStr = targetWeekEnd.toISOString().slice(0, 10);
   const targetWeekRows = filtered.filter(r => r.planning_date >= targetWeekStartStr && r.planning_date <= targetWeekEndStr);
-  const targetAuviRombels = new Set(targetWeekRows.filter(r => r.auvi_tv && r.rombel_id).map(r => r.branch_id + ":" + r.rombel_id)).size;
+  const targetRunningRombels = new Set(targetWeekRows.map(r => r.rombel_id).filter(Boolean)).size;
+  const targetAuviRombels = new Set(targetWeekRows.filter(r => r.auvi_tv && r.rombel_id).map(r => r.rombel_id)).size;
   const targetLdSessions = targetWeekRows.filter(r => r.ld).length;
-  const targetBranches = branchId === "all" ? Array.from(new Set(targetWeekRows.map(r => r.branch_id))) : [branchId];
-  const targetRombelPopulation = targetBranches.reduce((sum, id) => {
-    const branchName = nameOf(branches, id);
-    return sum + (MONITORING_BRANCH_ROMBEL_COUNTS[branchName] || 0);
-  }, 0);
-  const targetAuviGoal = Math.ceil(targetRombelPopulation * 0.5);
+  const targetAuviGoal = Math.ceil(targetRunningRombels * 0.5);
   const targetLdGoal = 10;
   const auviProgress = targetAuviGoal ? Math.min(100, Math.round((targetAuviRombels / targetAuviGoal) * 100)) : 0;
   const ldProgress = Math.min(100, Math.round((targetLdSessions / targetLdGoal) * 100));
@@ -62,7 +41,7 @@ if (!s.includes("monitoring-target-kpi")) {
     '<section className="card monitoring-card-list">',
   ];
   const listNeedle = listNeedles.find(needle => s.includes(needle));
-  const targetSection = `<section className="grid monitoring-target-row"><div className="card planning-kpi monitoring-target-kpi monitoring-auvi-kpi"><div className="kpi-label">Target AuVi TV</div><div className="kpi-value">{targetAuviRombels}/{targetAuviGoal}</div><div className="kpi-note">≥ 50% rombel per minggu · {auviProgress}%</div></div><div className="card planning-kpi monitoring-target-kpi monitoring-ld-kpi"><div className="kpi-label">Target LD</div><div className="kpi-value">{targetLdSessions}/{targetLdGoal}</div><div className="kpi-note">10 sesi per minggu · {ldProgress}%</div></div></section>`;
+  const targetSection = `<section className="grid monitoring-target-row"><div className="card planning-kpi monitoring-target-kpi monitoring-auvi-kpi"><div className="kpi-label">Target AuVi TV</div><div className="kpi-value">{targetAuviRombels}/{targetAuviGoal}</div><div className="kpi-note">≥ 50% unique rombel berjalan · {auviProgress}%</div></div><div className="card planning-kpi monitoring-target-kpi monitoring-ld-kpi"><div className="kpi-label">Target LD</div><div className="kpi-value">{targetLdSessions}/{targetLdGoal}</div><div className="kpi-note">10 sesi per minggu · {ldProgress}%</div></div></section>`;
   if (!listNeedle) throw new Error("Monitoring list marker not found");
   s = s.replace(listNeedle, targetSection + listNeedle);
 }
@@ -75,4 +54,4 @@ if (!s.includes("monitoring-target-row")) {
 }
 
 fs.writeFileSync(file, s);
-console.log("Applied Monitoring targets: AuVi >= 50% rombel/week; LD 10 sessions/week");
+console.log("Applied Monitoring targets: AuVi >= 50% of running unique rombels/week; LD 10 sessions/week");
