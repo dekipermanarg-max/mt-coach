@@ -43,7 +43,7 @@ if (s.includes("const targetWeekRows")) {
   s = s.replace(stateNeedle, stateNeedle + "\n" + stateBlock);
 }
 
-const targetSection = `<section className="grid monitoring-target-row"><div className="card planning-kpi monitoring-target-kpi monitoring-auvi-kpi"><div className="kpi-label">Target AuVi TV</div><div className="kpi-value">{targetAuviSessions}/{targetAuviGoal}</div><div className="kpi-note">10 sesi per minggu · {auviProgress}%</div></div><div className="card planning-kpi monitoring-target-kpi monitoring-ld-kpi"><div className="kpi-label">Target LD</div><div className="kpi-value">{targetLdRombels}/{targetLdGoal}</div><div className="kpi-note">≥ 50% unique rombel berjalan · {ldProgress}%</div></div></section>`;
+const targetSection = `<section className="grid monitoring-target-row"><div className="card planning-kpi monitoring-target-kpi monitoring-auvi-kpi"><div className="kpi-label">Target AuVi TV</div><div className="kpi-value">{targetAuviSessions}/{targetAuviGoal}</div><div className="kpi-note monitoring-target-note">10 sesi per minggu · {auviProgress}%</div></div><div className="card planning-kpi monitoring-target-kpi monitoring-ld-kpi"><div className="kpi-label">Target LD</div><div className="kpi-value">{targetLdRombels}/{targetLdGoal}</div><div className="kpi-note monitoring-target-note">≥ 50% unique rombel berjalan · {ldProgress}%</div></div></section>`;
 
 const sectionRegex = /<section className="grid monitoring-target-row">[\s\S]*?<\/section>/;
 if (sectionRegex.test(s)) {
@@ -59,11 +59,12 @@ if (sectionRegex.test(s)) {
 }
 
 const styleNeedle = '<style>{`';
-const styleAdd = '.monitoring-target-row{grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:18px}.monitoring-target-kpi{border-top:3px solid #7c3aed}.monitoring-auvi-kpi{border-top-color:#7c3aed!important}.monitoring-ld-kpi{border-top-color:#059669!important}@media(max-width:700px){.monitoring-target-row{grid-template-columns:1fr}}';
-if (!s.includes("monitoring-target-row")) {
+const styleAdd = '.monitoring-target-row{grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:18px}.monitoring-target-kpi{border-top:3px solid #7c3aed;min-height:96px;padding-bottom:34px!important}.monitoring-auvi-kpi{border-top-color:#7c3aed!important}.monitoring-ld-kpi{border-top-color:#059669!important}.monitoring-target-note{white-space:normal;overflow-wrap:anywhere;line-height:1.3;max-width:68%;padding-right:4px}@media(max-width:700px){.monitoring-target-row{grid-template-columns:1fr}.monitoring-target-note{max-width:72%}}';
+const styleMarker = '.monitoring-target-note{';
+if (!s.includes(styleMarker)) {
   if (!s.includes(styleNeedle)) throw new Error("Monitoring style marker not found");
   s = s.replace(styleNeedle, styleNeedle + styleAdd);
 }
 
 fs.writeFileSync(file, s);
-console.log("Applied Monitoring targets: AuVi TV 10 sessions/week; LD >= 50% unique running rombels");
+console.log("Applied Monitoring targets: AuVi TV 10 sessions/week; LD >= 50% unique running rombels; wrapped target notes");
