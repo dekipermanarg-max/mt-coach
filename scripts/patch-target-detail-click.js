@@ -48,7 +48,7 @@ function patchMonitoring() {
   }
   s = addClickToCard(s, "Target AuVi TV", 'showTargetDetail("auvi")', "Lihat detail assignment AuVi TV", "card planning-kpi monitoring-target-kpi monitoring-auvi-kpi");
   s = addClickToCard(s, "Target LD", 'showTargetDetail("ld")', "Lihat detail assignment LD", "card planning-kpi monitoring-target-kpi monitoring-ld-kpi");
-  s = injectRoot(s, "monitoring-target-detail", ['    <section className="card monitoring-list-card">', '    <section className="card monitoring-card-list">']);
+  s = injectRoot(s, "monitoring-target-detail", ['<section className="card monitoring-list-card">', '<section className="card monitoring-card-list">']);
   fs.writeFileSync(file, s);
 }
 
