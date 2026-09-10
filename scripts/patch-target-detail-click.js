@@ -19,8 +19,6 @@ function injectAccordionRoot(source, id, beforeMarkers) {
   if (source.includes(`id="${id}"`)) return source;
   const markers = Array.isArray(beforeMarkers) ? beforeMarkers : [beforeMarkers];
   const markerIndex = markers.map(m => source.indexOf(m)).find(i => i >= 0);
-  // Some legacy patches change the surrounding section markup. Do not fail the whole production build
-  // just because the optional target-detail accordion cannot be inserted.
   if (markerIndex == null) return source;
   const root = `      <div id="${id}" style={{ marginTop: 16 }} />\n\n`;
   return source.slice(0, markerIndex) + root + source.slice(markerIndex);
@@ -29,7 +27,6 @@ function injectAccordionRoot(source, id, beforeMarkers) {
 function patchMonitoring() {
   const file = path.join(process.cwd(), "app/monitoring/page.tsx");
   let s = fs.readFileSync(file, "utf8");
-  const marker = '  const ldProgress = Math.min(100, Math.round((targetLdSessions / targetLdGoal) * 100));';
   const fn = [
     '  async function showTargetDetail(kind: "auvi" | "ld") {',
     '    const rows = kind === "auvi" ? targetWeekRows.filter(r => r.auvi_tv && r.rombel_id) : targetWeekRows.filter(r => r.ld);',
@@ -48,12 +45,20 @@ function patchMonitoring() {
     ''
   ].join("\n");
   if (!s.includes("async function showTargetDetail(kind")) {
-    if (!s.includes(marker)) throw new Error("Monitoring target click marker not found");
-    s = s.replace(marker, marker + "\n" + fn);
+    const markerCandidates = [
+      '  const targetWeekRows = filtered.filter(r => r.planning_date >= targetWeekStartStr && r.planning_date <= targetWeekEndStr);',
+      '  const incompleteCount = incompleteRows.length;',
+    ];
+    const marker = markerCandidates.find(m => s.includes(m));
+    if (!marker) {
+      console.warn("Monitoring target-detail insertion marker not found; skipping optional target detail function.");
+    } else {
+      s = s.replace(marker, marker + "\n\n" + fn);
+    }
   }
   s = addClickToCard(s, "Target AuVi TV", 'showTargetDetail("auvi")', "Lihat detail assignment AuVi TV", "card planning-kpi monitoring-target-kpi monitoring-auvi-kpi");
   s = addClickToCard(s, "Target LD", 'showTargetDetail("ld")', "Lihat detail assignment LD", "card planning-kpi monitoring-target-kpi monitoring-ld-kpi");
-  s = injectAccordionRoot(s, "monitoring-target-detail", ['    <section className="card monitoring-list-card">', '    <section className="grid monitoring-target-row">']);
+  s = injectAccordionRoot(s, "monitoring-target-detail", ['    <section className="card monitoring-list-card">', '    <section className="card monitoring-card-list">']);
   fs.writeFileSync(file, s);
   console.log("Patched Monitoring target cards with accordion details.");
 }
@@ -78,7 +83,8 @@ function patchPlanning() {
     '    const rows = (data || []) as PlanningRow[];',
     '    const assigned = kind === "auvi" ? rows.filter(r => r.auvi_tv && r.rombel_id) : rows.filter(r => r.ld);',
     '    const unique = kind === "auvi" ? Array.from(new Map(assigned.map(r => [r.rombel_id!, r])).values()) : assigned;',
-    '    const goal = kind === "auvi" ? (weeklyRombelPopulation ? Math.ceil(weeklyRombelPopulation * 0.5) : 0) : 10;',
+    '    const runningRombels = new Set(rows.map(r => r.rombel_id).filter(Boolean)).size;',
+    '    const goal = kind === "auvi" ? Math.ceil(runningRombels * 0.5) : 10;',
     '    const title = kind === "auvi" ? "🎥 Assignment AuVi TV" : "👥 Assignment LD";',
     '    const root = document.getElementById("planning-target-detail");',
     '    if (!root) return;',
@@ -91,7 +97,7 @@ function patchPlanning() {
     ''
   ].join("\n");
   if (!s.includes("async function showTargetDetail(kind")) {
-    if (!s.includes(marker)) throw new Error("Planning target click marker not found");
+    if (!s.includes(marker)) throw new Error("Planning target marker not found");
     s = s.replace(marker, fn + marker);
   }
   s = addClickToCard(s, "AuVi TV Mingguan", 'showTargetDetail("auvi")', "Lihat detail assignment AuVi TV");
