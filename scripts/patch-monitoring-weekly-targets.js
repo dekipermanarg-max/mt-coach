@@ -66,5 +66,14 @@ if (!s.includes(styleMarker)) {
   s = s.replace(styleNeedle, styleNeedle + styleAdd);
 }
 
+// WA report drill requirement:
+// Every missing admin item requires 5 correct drill questions, cumulatively.
+// 1 missing item = 5 soal benar; 2 = 10; 3 = 15; etc.
+const drillNeedle = '          "👉 Bantu kerjakan drill ... soal benar dan share bukti pengerjaannya di grup ini.",';
+const drillReplacement = '          `👉 Bantu kerjakan drill *${missing.length * 5} soal benar* dan share bukti pengerjaannya di grup ini.`,';
+if (s.includes(drillNeedle)) {
+  s = s.replace(drillNeedle, drillReplacement);
+}
+
 fs.writeFileSync(file, s);
-console.log("Applied Monitoring targets: AuVi TV 10 sessions/week; LD >= 50% unique running rombels; wrapped target notes");
+console.log("Applied Monitoring targets and WA drill requirement: 5 correct drill questions per missing admin item");
