@@ -43,7 +43,7 @@ const replacement = [
   "        lines.push(",
   "          `${number++}. ${nameOf(rombels, row.rombel_id)} · ${nameOf(mapels, row.mapel_id)} · ${row.jenis_sesi}`,",
   "          `   ❌ ${missing.join(\" · \")}`,",
-  "          \"👉 Bantu kerjakan drill ... soal benar dan share bukti pengerjaannya di grup ini.\",",
+  "          `👉 Bantu kerjakan drill *${missing.length * 5} soal benar* dan share bukti pengerjaannya di grup ini.`,",
   "          \"\",",
   "        );",
   "      });",
