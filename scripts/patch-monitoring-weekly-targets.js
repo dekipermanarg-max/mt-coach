@@ -5,8 +5,8 @@ const file = path.join(process.cwd(), "app/monitoring/page.tsx");
 let s = fs.readFileSync(file, "utf8");
 
 // Correct weekly target rules:
-// - AuVi TV: minimum 50% of unique rombels that are actually running/planned in the week.
-// - LD: 10 sessions per week.
+// - AuVi TV: 10 sessions per week.
+// - LD: minimum 50% of unique rombels that are actually running/planned in the week.
 const stateNeedle = '  const incompleteCount = incompleteRows.length;';
 const stateBlock = `  const targetWeekBase = new Date((startDate || new Date().toISOString().slice(0, 10)) + "T00:00:00");
   const targetWeekDay = targetWeekBase.getDay();
@@ -19,16 +19,16 @@ const stateBlock = `  const targetWeekBase = new Date((startDate || new Date().t
   const targetWeekEndStr = targetWeekEnd.toISOString().slice(0, 10);
   const targetWeekRows = filtered.filter(r => r.planning_date >= targetWeekStartStr && r.planning_date <= targetWeekEndStr);
 
-  // AuVi achievement = unique rombels with at least one AuVi TV session in the week.
+  // AuVi achievement = number of AuVi TV sessions in the week.
+  const targetAuviSessions = targetWeekRows.filter(r => r.auvi_tv || r.auvi_tv_status === "Connect ke TV").length;
+  // LD achievement = unique rombels with at least one LD session in the week.
   const targetRunningRombels = new Set(targetWeekRows.map(r => r.rombel_id).filter(Boolean)).size;
-  const targetAuviRombels = new Set(targetWeekRows.filter(r => r.auvi_tv && r.rombel_id).map(r => r.rombel_id)).size;
-  // LD achievement = number of LD sessions in the week.
-  const targetLdSessions = targetWeekRows.filter(r => r.ld).length;
+  const targetLdRombels = new Set(targetWeekRows.filter(r => r.ld && r.rombel_id).map(r => r.rombel_id)).size;
 
-  const targetAuviGoal = Math.ceil(targetRunningRombels * 0.5);
-  const targetLdGoal = 10;
-  const auviProgress = targetAuviGoal ? Math.min(100, Math.round((targetAuviRombels / targetAuviGoal) * 100)) : 0;
-  const ldProgress = Math.min(100, Math.round((targetLdSessions / targetLdGoal) * 100));
+  const targetAuviGoal = 10;
+  const targetLdGoal = Math.ceil(targetRunningRombels * 0.5);
+  const auviProgress = Math.min(100, Math.round((targetAuviSessions / targetAuviGoal) * 100));
+  const ldProgress = targetLdGoal ? Math.min(100, Math.round((targetLdRombels / targetLdGoal) * 100)) : 0;
 `;
 
 if (s.includes("const targetWeekRows")) {
@@ -43,7 +43,7 @@ if (s.includes("const targetWeekRows")) {
   s = s.replace(stateNeedle, stateNeedle + "\n" + stateBlock);
 }
 
-const targetSection = `<section className="grid monitoring-target-row"><div className="card planning-kpi monitoring-target-kpi monitoring-auvi-kpi"><div className="kpi-label">Target AuVi TV</div><div className="kpi-value">{targetAuviRombels}/{targetAuviGoal}</div><div className="kpi-note">≥ 50% unique rombel · {auviProgress}%</div></div><div className="card planning-kpi monitoring-target-kpi monitoring-ld-kpi"><div className="kpi-label">Target LD</div><div className="kpi-value">{targetLdSessions}/{targetLdGoal}</div><div className="kpi-note">10 sesi per minggu · {ldProgress}%</div></div></section>`;
+const targetSection = `<section className="grid monitoring-target-row"><div className="card planning-kpi monitoring-target-kpi monitoring-auvi-kpi"><div className="kpi-label">Target AuVi TV</div><div className="kpi-value">{targetAuviSessions}/{targetAuviGoal}</div><div className="kpi-note">10 sesi per minggu · {auviProgress}%</div></div><div className="card planning-kpi monitoring-target-kpi monitoring-ld-kpi"><div className="kpi-label">Target LD</div><div className="kpi-value">{targetLdRombels}/{targetLdGoal}</div><div className="kpi-note">≥ 50% unique rombel berjalan · {ldProgress}%</div></div></section>`;
 
 const sectionRegex = /<section className="grid monitoring-target-row">[\s\S]*?<\/section>/;
 if (sectionRegex.test(s)) {
@@ -66,4 +66,4 @@ if (!s.includes("monitoring-target-row")) {
 }
 
 fs.writeFileSync(file, s);
-console.log("Applied Monitoring targets: AuVi TV >= 50% unique running rombels; LD 10 sessions/week");
+console.log("Applied Monitoring targets: AuVi TV 10 sessions/week; LD >= 50% unique running rombels");
