@@ -36,6 +36,8 @@ jobs:
         run: node scripts/patch-monitoring-topik-checkbox.js
       - name: Differentiate Monitoring Session Types
         run: node scripts/patch-monitoring-session-type-colors.js
+      - name: Remove MT Initials and Add Session Type Label
+        run: node scripts/patch-monitoring-session-labels.js
       - name: Show Monitoring Weekly Targets
         run: node scripts/patch-monitoring-weekly-targets.js
       - name: Patch WhatsApp Report Wording
