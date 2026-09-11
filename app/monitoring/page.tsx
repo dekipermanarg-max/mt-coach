@@ -16,9 +16,6 @@ const AUVISTATUSES = [
   "Bukan sesi AuVi TV",
   "Tidak connect ke TV",
   "Connect ke TV",
-  "✅ Connect AuVi TV",
-  "❌ Bukan sesi AuVi TV",
-  "✖️ Bukan sesi AuVi TV",
 ];
 const LDSTATUSES = ["Bukan sesi LD", "Sudah report di CMS", "Belum report ke CMS"];
 const ADMIN_KEYS = ["topik_sub_topik_done", "attendance", "starchamps", "activity_score", "report_sessions", "foto_kbm", "report_wa"] as const;
@@ -258,4 +255,3 @@ export default function Monitoring() {
     <div className="finalize-bar"><div><strong>Monitoring tersimpan otomatis</strong><small>Administrasi dapat dilengkapi kapan saja setelah sesi Finalized.</small></div><div style={{ display: "flex", gap: 10 }}><Link className="secondary-btn" href="/planning">📅 Kembali ke Planning</Link></div></div>
     {showWaReport && <div className="wa-modal-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) setShowWaReport(false); }}><section className="wa-modal" role="dialog" aria-modal="true" aria-labelledby="wa-report-title"><div className="wa-modal-head"><div><div className="eyebrow">MONITORING · WHATSAPP</div><h2 id="wa-report-title">📲 Report Administrasi MT</h2><p>Generate pesan untuk satu tanggal. Cabang, MT, dan pencarian tetap mengikuti filter yang sedang aktif.</p></div><button type="button" className="wa-close" onClick={() => setShowWaReport(false)} aria-label="Tutup">×</button></div><div className="wa-report-summary"><span className="badge green">✅ {reportCompleteCount} Lengkap</span><span className="badge yellow">🟡 {reportIncompleteCount} Belum lengkap</span><label className="control-box" style={{ minWidth: 180 }}><span className="control-label">Tanggal Report</span><input className="date-input" type="date" value={waDate} onChange={e => setWaDate(e.target.value)} /></label></div><textarea className="wa-report-text" value={waReport} readOnly aria-label="Preview report WhatsApp" /><div className="wa-modal-actions"><button type="button" className="secondary-btn" onClick={copyWaReport}>{copied ? "✅ Tersalin!" : "📋 Copy Pesan"}</button><button type="button" className="primary-btn" onClick={openWhatsApp}>💬 Buka WhatsApp</button></div><div className="wa-modal-note">WhatsApp akan dibuka dengan pesan sudah terisi. Pilih grup WA MT lalu kirim.</div></section></div>}
   </div>;
-}
