@@ -28,6 +28,8 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm install
+      - name: Fix Monitoring source tail
+        run: node scripts/fix-monitoring-tail.js
       - name: Patch Monitoring UI
         run: node scripts/patch-monitoring.js
       - name: Guarantee Monitoring Topik Checkbox
