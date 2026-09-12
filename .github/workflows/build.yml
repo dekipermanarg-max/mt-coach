@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Fix Monitoring source tail
+        run: node scripts/fix-monitoring-tail.js
       - name: Patch Monitoring UI
         run: node scripts/patch-monitoring.js
       - name: Patch Monitoring Topik checkbox
@@ -25,6 +27,8 @@ jobs:
           if old in s:
               s = s.replace(old, new, 1)
           p.write_text(s, encoding='utf-8')
+      - name: Remove MT Initials and Add Session Type Label
+        run: node scripts/patch-monitoring-session-labels.js
       - uses: actions/setup-node@v4
         with:
           node-version: 20
