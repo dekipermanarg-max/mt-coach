@@ -31,12 +31,11 @@ const newLoop = `      reportRows.forEach((row, index) => {
         const mapelName = nameOf(mapels, row.mapel_id);
         const sessionType = row.jenis_sesi || "—";
 
-        // MT: remove the initials/avatar circle; keep the name and completion percentage.
+        // MT: show only the name. No percentage or completion pill under the MT name.
         ctx.fillStyle = "#172033"; ctx.font = "800 13px Arial"; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
         const mtLines = wrapText(mtName, cols[0][1] - 22, 2);
-        const mtStart = y + (mtLines.length === 1 ? 39 : 30);
+        const mtStart = y + (mtLines.length === 1 ? 52 : 42);
         mtLines.forEach((line, j) => ctx.fillText(line, colX[0] + 12, mtStart + j * 16));
-        drawPill(colX[0] + 12, y + 61, 54, 18, complete ? "100%" : String(adminPercent(row)) + "%", complete ? "#e5f8ef" : "#fff0f0", complete ? "#138a63" : "#c92f2f", "800 10px Arial");
 
         drawPill(colX[1] + 9, y + 34, Math.min(cols[1][1] - 18, 96), 25, String(rombelName).slice(0, 16), "#eef6fb", "#17658a", "800 10px Arial");
         ctx.fillStyle = "#172033"; ctx.font = "700 12px Arial";
@@ -44,9 +43,9 @@ const newLoop = `      reportRows.forEach((row, index) => {
         const mapelStart = y + (mapelLines.length === 1 ? 52 : 43);
         mapelLines.forEach((line, j) => ctx.fillText(line, colX[2] + 10, mapelStart + j * 15));
 
-        // Jenis Sesi is now a dedicated column immediately after Mapel.
-        const sessionBg = sessionType === "Klinik PR" ? "#dbeafe" : sessionType === "Trial Class" ? "#fef3c7" : "#e5f8ef";
-        const sessionColor = sessionType === "Klinik PR" ? "#1d4ed8" : sessionType === "Trial Class" ? "#b45309" : "#047857";
+        // Jenis Sesi is a dedicated, clearly color-coded column.
+        const sessionBg = sessionType === "Klinik PR" ? "#dbeafe" : sessionType === "Trial Class" ? "#fef3c7" : "#fee2e2";
+        const sessionColor = sessionType === "Klinik PR" ? "#1d4ed8" : sessionType === "Trial Class" ? "#b45309" : "#b91c1c";
         drawPill(colX[3] + 8, y + 34, cols[3][1] - 16, 25, sessionType, sessionBg, sessionColor, "800 10px Arial");
 
         const states: Array<"na" | "ok" | "no"> = simple
@@ -64,4 +63,4 @@ const newLoop = `      reportRows.forEach((row, index) => {
 
 s = s.slice(0, loopStart) + newLoop + s.slice(loopEnd);
 fs.writeFileSync(file, s);
-console.log("Updated BAC screenshot: removed MT initials and added Jenis Sesi after Mapel.");
+console.log("Updated BAC screenshot: removed MT percentage and color-coded KBM/Klinik PR/Trial Class.");
