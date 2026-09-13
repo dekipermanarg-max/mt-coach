@@ -16,7 +16,7 @@ function patchMonitoring() {
   let source = fs.readFileSync(monitoringPath, "utf8");
   source = ensureImport(
     source,
-    'import { getAdminDone, getAdminPercent, getAdminTotal, getMissingAdmin, isSessionAdminComplete } from "../../lib/session-admin";'
+    'import { getAdminDone, getAdminPercent, getAdminTotal, getMissingAdmin, isAdminComplete, isAuviComplete, isLdComplete, isSimpleSession, isSessionAdminComplete } from "../../lib/session-admin";'
   );
 
   source = source.replace(
@@ -34,6 +34,7 @@ function patchMonitoring() {
   source = source.replace(/adminDone\(r\) === adminTotal\(r\)/g, "isAdminComplete(r)");
   source = source.replace(/adminDone\(row\) === adminTotal\(row\)/g, "isAdminComplete(row)");
 
+  // The shared helper is imported under the same function names used by the JSX below.
   fs.writeFileSync(monitoringPath, source, "utf8");
 }
 
