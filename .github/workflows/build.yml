@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Apply shared MT admin completeness logic
+        run: node scripts/patch-admin-completeness.js
       - name: Fix Monitoring source tail
         run: node scripts/fix-monitoring-tail.js
       - name: Patch Monitoring UI
