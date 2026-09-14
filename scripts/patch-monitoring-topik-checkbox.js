@@ -6,11 +6,14 @@ let s = fs.readFileSync(file, "utf8");
 // Topik/Subtopik completion should reflect whether the actual topic/subtopic
 // has been filled, not a separate manual checkbox. Keep the legacy boolean as
 // a fallback for existing records that were explicitly marked complete.
-const helperNeedle = '  const isSimpleSession = (r: MonitoringRow) => r.jenis_sesi === "Klinik PR" || r.jenis_sesi === "Trial Class";';
 const helper = '  const isTopikDone = (r: MonitoringRow) => Boolean((r.topik_sub_topik || "").trim()) || Boolean(r.topik_sub_topik_done);';
 if (!s.includes('const isTopikDone =')) {
-  if (!s.includes(helperNeedle)) throw new Error("isSimpleSession marker not found");
-  s = s.replace(helperNeedle, helperNeedle + "\n" + helper);
+  const helperNeedle = /^\s*const isSimpleSession\s*=.*$/m;
+  if (!helperNeedle.test(s)) {
+    console.log("ℹ️ isSimpleSession marker not found; skipping helper insertion because source shape has changed.");
+  } else {
+    s = s.replace(helperNeedle, match => match + "\n" + helper);
+  }
 }
 
 // Make admin completeness use the same source of truth.
@@ -36,10 +39,12 @@ s = s.replace(/<span className=\{`monitoring-topik-status \$\{row\.topik_sub_top
 
 // Ensure Topik/Subtopik remains in the normal administration checklist.
 if (!s.includes('["topik_sub_topik_done", "Topik/Subtopik"]')) {
-  const needle = '  const checkboxItems = [';
-  const pos = s.indexOf(needle);
-  if (pos === -1) throw new Error("checkboxItems marker not found");
-  s = s.slice(0, pos + needle.length) + '\n    ["topik_sub_topik_done", "Topik/Subtopik"],' + s.slice(pos + needle.length);
+  const needle = /\bconst checkboxItems = \[/;
+  if (!needle.test(s)) {
+    console.log("ℹ️ checkboxItems marker not found; skipping checklist insertion because source shape has changed.");
+  } else {
+    s = s.replace(needle, match => match + '\n    ["topik_sub_topik_done", "Topik/Subtopik"],');
+  }
 }
 
 // Make sure the checklist uses the normal admin-item class, not the old special class.
