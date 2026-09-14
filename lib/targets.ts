@@ -7,10 +7,10 @@ export const LD_ELIGIBLE_ROMBEL_NAMES: Record<string, string[]> = {
   "Padang - Ujung Gurun": ["6 SD R4.01", "11 SMA R4.01"],
 };
 
-// Keep the existing operational target configuration.
-// Ujung Gurun weekly LD target remains 3 assignments.
+// Number of rombel actually eligible for LD in each branch.
+// Ujung Gurun has 2 eligible rombels, while its operational LD target remains 3 assignments/week.
 export const LD_ELIGIBLE_ROMBEL: Record<string, number> = {
-  "Padang - Ujung Gurun": 6,
+  "Padang - Ujung Gurun": 2,
   "Padang - Tarandam": 6,
   "Padang - Sutomo": 11,
   "Padang - S. Parman": 6,
