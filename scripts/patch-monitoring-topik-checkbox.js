@@ -7,12 +7,19 @@ let s = fs.readFileSync(file, "utf8");
 // has been filled, not a separate manual checkbox. Keep the legacy boolean as
 // a fallback for existing records that were explicitly marked complete.
 const helper = '  const isTopikDone = (r: MonitoringRow) => Boolean((r.topik_sub_topik || "").trim()) || Boolean(r.topik_sub_topik_done);';
+const topikInline = 'Boolean((row.topik_sub_topik || "").trim()) || Boolean(row.topik_sub_topik_done)';
+const topikInlineR = 'Boolean((r.topik_sub_topik || "").trim()) || Boolean(r.topik_sub_topik_done)';
+
 if (!s.includes('const isTopikDone =')) {
   const helperNeedle = /^\s*const isSimpleSession\s*=.*$/m;
-  if (!helperNeedle.test(s)) {
-    console.log("ℹ️ isSimpleSession marker not found; skipping helper insertion because source shape has changed.");
-  } else {
+  if (helperNeedle.test(s)) {
     s = s.replace(helperNeedle, match => match + "\n" + helper);
+  } else {
+    // Some generated Monitoring variants no longer contain isSimpleSession.
+    // In that case do not leave dangling isTopikDone references behind.
+    s = s.replace(/isTopikDone\(row\)/g, topikInline);
+    s = s.replace(/isTopikDone\(r\)/g, topikInlineR);
+    console.log("ℹ️ isSimpleSession marker not found; using inline Topik/Subtopik completion logic.");
   }
 }
 
