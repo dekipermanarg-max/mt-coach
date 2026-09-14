@@ -2,10 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import { isSessionAdminComplete } from "../../lib/session-admin";
 import {
   AUVI_WEEKLY_TARGET,
   LD_TARGET_PERCENT,
-  LD_ELIGIBLE_ROMBEL,
   countUniqueLDRombels,
   getBranchTargetKey,
   getLDEligibleCount,
@@ -22,11 +22,7 @@ type Session = {
 };
 function formatDate(value: string) { return value ? new Date(`${value}T00:00:00`).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : ""; }
 function defaultStart() { const d = new Date(); d.setDate(d.getDate() - 6); return d.toISOString().slice(0, 10); }
-function isSimpleSession(s: Session) { return s.jenis_sesi === "Klinik PR" || s.jenis_sesi === "Trial Class"; }
-function adminComplete(s: Session) {
-  if (isSimpleSession(s)) return Boolean(s.attendance);
-  return Boolean(s.topik_sub_topik_done && s.attendance && s.starchamps && s.activity_score && s.report_sessions && s.foto_kbm && s.report_wa && s.auvi_tv_status && (s.ld_status === "Bukan sesi LD" || s.ld_status === "Sudah report di CMS"));
-}
+function adminComplete(s: Session) { return isSessionAdminComplete(s); }
 function weeksInRange(start: string, end: string) { const a = new Date(`${start}T00:00:00`); const b = new Date(`${end}T00:00:00`); const days = Math.max(1, Math.floor((b.getTime() - a.getTime()) / 86400000) + 1); return Math.max(1, Math.ceil(days / 7)); }
 type ExportRow = { name: string; base: string; planned: number; realized: number; session: number; admin: number; adminComplete: number; ld: number | null };
 
