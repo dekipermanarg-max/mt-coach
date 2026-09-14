@@ -86,6 +86,8 @@ jobs:
         run: node scripts/patch-data-whatsapp.js
       - name: Patch WhatsApp Poster Download Button
         run: node scripts/patch-wa-poster-button.js
+      - name: Final Monitoring build safety check
+        run: node scripts/patch-monitoring-build-safety.js
       - name: Build static site
         run: npm run build
       - name: Setup Pages
