@@ -5,8 +5,9 @@ let s = fs.readFileSync(file, "utf8");
 
 // Correct weekly target rules:
 // - AuVi TV: 10 sessions per week.
-// - LD: minimum 50% of unique rombels that are eligible for LD.
-// - Padang - Ujung Gurun: only 6 SD R4.01 and 11 SMA R4.01 are LD-eligible.
+// - LD: target is 50% of the ABSOLUTE, branch-specific eligible-rombel count.
+// - The eligible-rombel count is NOT derived from Weekly Planning rows.
+// - These counts remain fixed until explicitly changed in lib/targets.ts.
 const stateNeedle = '  const [ld, setLd] = useState(false);';
 const oldState = /\n  const \[weeklyAuviRombels, setWeeklyAuviRombels\] = useState\(0\);\n  const \[weeklyLdSessions, setWeeklyLdSessions\] = useState\(0\);\n  const \[weeklyRombelPopulation, setWeeklyRombelPopulation\] = useState\(0\);/;
 if (!s.includes("weeklyAuviSessions")) {
@@ -37,20 +38,31 @@ const effectAdd = `  useEffect(() => {
       if (cancelled) return;
       const planningRows = weekRes.data || [];
 
-      // Planning can contain non-LD-eligible rombels (e.g. class 12 at Ujung Gurun).
-      // The LD KPI must use the LD-eligible population, not every running rombel.
+      // IMPORTANT: LD denominator is fixed per branch. Never derive it from planningRows.
+      const fixedLdEligibleCounts: Record<string, number> = {
+        "Padang - Ujung Gurun": 2,
+        "Padang - Tarandam": 6,
+        "Padang - Sutomo": 11,
+        "Padang - S. Parman": 6,
+        "Padang - Gajah Mada": 10,
+        "Solok - Pandan": 6,
+        "Payakumbuh - Simpang Benteng": 9,
+        "Painan - Pagaruyung": 6,
+        "Bukittinggi - Manggis Ganting": 5,
+        "Bukittinggi - Jambu Air": 6,
+      };
+      const eligibleCount = fixedLdEligibleCounts[branch] || 0;
+
+      // Ujung Gurun has a fixed 2-rombel LD whitelist.
       const ujungGurunLdEligible = new Set([
-        "a60a0675-1d03-4b45-ae51-0f1a9eb35ab0", // 6 SD R4.01
-        "ca7db70b-f37d-415f-a4f8-01722e5b3958", // 11 SMA R4.01
+        "a60a0675-1d03-4b45-ae51-0f1a9eb35ab0",
+        "ca7db70b-f37d-415f-a4f8-01722e5b3958",
       ]);
       const isLDEligibleRombel = (rombelId: string | null) =>
         branch === "Padang - Ujung Gurun"
           ? Boolean(rombelId && ujungGurunLdEligible.has(rombelId))
           : Boolean(rombelId);
 
-      const runningRombels = new Set(
-        planningRows.map(x => x.rombel_id).filter(isLDEligibleRombel),
-      ).size;
       const auviSessions = planningRows.filter(x => x.auvi_tv).length;
       const ldRombels = new Set(
         planningRows
@@ -59,7 +71,7 @@ const effectAdd = `  useEffect(() => {
       ).size;
       setWeeklyAuviSessions(auviSessions);
       setWeeklyLdRombels(ldRombels);
-      setWeeklyRombelPopulation(runningRombels);
+      setWeeklyRombelPopulation(eligibleCount);
     }
     loadWeeklyTargets();
     return () => { cancelled = true; };
@@ -84,4 +96,4 @@ if (ldCardRegex.test(s)) {
 }
 
 fs.writeFileSync(file, s);
-console.log("Patched Weekly Planning targets: AuVi TV 10 sessions/week; LD >= 50% unique LD-eligible rombels.");
+console.log("Patched Weekly Planning targets: AuVi TV 10 sessions/week; LD = 50% of fixed branch eligible-rombel count.");
