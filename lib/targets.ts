@@ -4,7 +4,7 @@ export const LD_TARGET_PERCENT = 50;
 // Number of rombel eligible for LD in each branch.
 // LD realization is counted from the rombel_id on sessions that were actually assigned LD.
 export const LD_ELIGIBLE_ROMBEL: Record<string, number> = {
-  "Padang - Ujung Gurun": 2,
+  "Padang - Ujung Gurun": 6,
   "Padang - Tarandam": 6,
   "Padang - Sutomo": 11,
   "Padang - S. Parman": 6,
