@@ -1,17 +1,14 @@
 export const AUVI_WEEKLY_TARGET = 10;
 export const LD_TARGET_PERCENT = 50;
 
-// Ujung Gurun has an explicit LD whitelist. These are the rombel IDs currently
-// used by the branch for the two eligible rombels:
-// - 6 SD R4.01
-// - 11 SMA R4.01
-// 12 CHAMP R4.01 is explicitly excluded.
+// Ujung Gurun LD eligibility is explicitly limited to these two rombels.
+// 12 CHAMP R4.01 is excluded from LD calculations.
 export const LD_ELIGIBLE_ROMBEL_NAMES: Record<string, string[]> = {
   "Padang - Ujung Gurun": ["6 SD R4.01", "11 SMA R4.01"],
 };
 
-// Number of eligible LD rombel slots used by the target configuration.
-// Ujung Gurun's operational weekly target remains 3 LD assignments.
+// Keep the existing operational target configuration.
+// Ujung Gurun weekly LD target remains 3 assignments.
 export const LD_ELIGIBLE_ROMBEL: Record<string, number> = {
   "Padang - Ujung Gurun": 6,
   "Padang - Tarandam": 6,
@@ -25,11 +22,19 @@ export const LD_ELIGIBLE_ROMBEL: Record<string, number> = {
   "Bukittinggi - Jambu Air": 6,
 };
 
+// Current production IDs for the two eligible Ujung Gurun rombels.
+// 6 SD R4.01 = a60a0675-1d03-4b45-ae51-0f1a9eb35ab0
+// 11 SMA R4.01 = ca7db70b-f37d-415f-a4f8-01722e5b3958
+// Other Ujung Gurun rombel IDs, including 12 CHAMP R4.01, are excluded.
 export const LD_ELIGIBLE_ROMBEL_IDS: Record<string, string[]> = {
   "Padang - Ujung Gurun": [
-    "a60a0675-1d03-4b45-ae51-0f1a9eb35ab0", // 6 SD R4.01
-    "ca7db70b-f37d-415f-a4f8-01722e5b3958", // 11 SMA R4.01
+    "a60a0675-1d03-4b45-ae51-0f1a9eb35ab0",
+    "ca7db70b-f37d-415f-a4f8-01722e5b3958",
   ],
+};
+
+export const LD_BRANCH_IDS: Record<string, string> = {
+  "Padang - Ujung Gurun": "7f727cf7-47d0-4f21-9735-f9ae54ca3246",
 };
 
 export function getBranchTargetKey(name: string) {
@@ -59,6 +64,7 @@ export function getLDWeeklyTargetForBranches(branchNames: string[]) {
 }
 
 type LDSession = {
+  branch_id?: string | null;
   rombel_id: string | null;
   ld?: boolean | null;
   ld_status?: string | null;
@@ -72,11 +78,15 @@ export function isLDEligibleRombel(branchName: string, rombelId: string | null) 
   return ids ? ids.includes(rombelId) : true;
 }
 
-export function countUniqueLDRombels(sessions: LDSession[], branchName?: string) {
+export function countUniqueLDRombels(sessions: LDSession[]) {
   return new Set(
     sessions
       .filter((s) => s.ld === true && s.ld_status !== "Bukan sesi LD" && s.rombel_id)
-      .filter((s) => !branchName || isLDEligibleRombel(branchName, s.rombel_id))
+      .filter((s) => {
+        const ujungGurunId = LD_BRANCH_IDS["Padang - Ujung Gurun"];
+        if (s.branch_id !== ujungGurunId) return true;
+        return LD_ELIGIBLE_ROMBEL_IDS["Padang - Ujung Gurun"].includes(s.rombel_id as string);
+      })
       .map((s) => s.rombel_id as string),
   ).size;
 }
