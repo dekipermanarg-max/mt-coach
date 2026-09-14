@@ -75,10 +75,16 @@ function patchAdminCompleteness(targetFile, addLdField = false) {
 
   const oldCondition = '(s.ld_status === "Bukan sesi LD" || s.ld_status === "Sudah report di CMS")';
   const newCondition = '(!s.ld || s.ld_status === "Sudah report di CMS")';
-  if (!source.includes(oldCondition)) throw new Error(`LD admin condition marker not found in ${targetFile}`);
-  source = source.replace(oldCondition, newCondition);
-  fs.writeFileSync(target, source);
-  console.log("Applied LD admin completeness fix:", targetFile);
+  if (source.includes(oldCondition)) {
+    source = source.replace(oldCondition, newCondition);
+    fs.writeFileSync(target, source);
+    console.log("Applied LD admin completeness fix:", targetFile);
+  } else if (source.includes(newCondition)) {
+    fs.writeFileSync(target, source);
+    console.log("LD admin completeness already applied; continuing:", targetFile);
+  } else {
+    throw new Error(`LD admin condition marker not found in ${targetFile}`);
+  }
 }
 
 patchAdminCompleteness("app/page.tsx", false);
