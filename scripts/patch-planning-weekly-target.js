@@ -5,7 +5,8 @@ let s = fs.readFileSync(file, "utf8");
 
 // Correct weekly target rules:
 // - AuVi TV: 10 sessions per week.
-// - LD: minimum 50% of unique rombels that are actually running/planned in the week.
+// - LD: minimum 50% of unique rombels that are eligible for LD.
+// - Padang - Ujung Gurun: only 6 SD R4.01 and 11 SMA R4.01 are LD-eligible.
 const stateNeedle = '  const [ld, setLd] = useState(false);';
 const oldState = /\n  const \[weeklyAuviRombels, setWeeklyAuviRombels\] = useState\(0\);\n  const \[weeklyLdSessions, setWeeklyLdSessions\] = useState\(0\);\n  const \[weeklyRombelPopulation, setWeeklyRombelPopulation\] = useState\(0\);/;
 if (!s.includes("weeklyAuviSessions")) {
@@ -35,9 +36,27 @@ const effectAdd = `  useEffect(() => {
       const weekRes = await supabase.from("weekly_planning").select("rombel_id,auvi_tv,ld,status").eq("branch_id", branchId).gte("planning_date", startDate).lte("planning_date", endDate);
       if (cancelled) return;
       const planningRows = weekRes.data || [];
-      const runningRombels = new Set(planningRows.map(x => x.rombel_id).filter(Boolean)).size;
+
+      // Planning can contain non-LD-eligible rombels (e.g. class 12 at Ujung Gurun).
+      // The LD KPI must use the LD-eligible population, not every running rombel.
+      const ujungGurunLdEligible = new Set([
+        "a60a0675-1d03-4b45-ae51-0f1a9eb35ab0", // 6 SD R4.01
+        "ca7db70b-f37d-415f-a4f8-01722e5b3958", // 11 SMA R4.01
+      ]);
+      const isLDEligibleRombel = (rombelId: string | null) =>
+        branch === "Padang - Ujung Gurun"
+          ? Boolean(rombelId && ujungGurunLdEligible.has(rombelId))
+          : Boolean(rombelId);
+
+      const runningRombels = new Set(
+        planningRows.map(x => x.rombel_id).filter(isLDEligibleRombel),
+      ).size;
       const auviSessions = planningRows.filter(x => x.auvi_tv).length;
-      const ldRombels = new Set(planningRows.filter(x => x.ld && x.rombel_id).map(x => x.rombel_id)).size;
+      const ldRombels = new Set(
+        planningRows
+          .filter(x => x.ld && isLDEligibleRombel(x.rombel_id))
+          .map(x => x.rombel_id),
+      ).size;
       setWeeklyAuviSessions(auviSessions);
       setWeeklyLdRombels(ldRombels);
       setWeeklyRombelPopulation(runningRombels);
@@ -56,7 +75,7 @@ const auviCard = '<div className="card planning-kpi"><div className="planning-kp
 const auviCardRegex = /<div className="card planning-kpi"><div className="planning-kpi-top"><div className="kpi-label">(?:AuVi TV Coverage|AuVi TV Mingguan)<\/div>[\s\S]*?<\/div><div className="kpi-value">[\s\S]*?<\/div><div className="kpi-note">[\s\S]*?<\/div><\/div>/;
 if (auviCardRegex.test(s)) s = s.replace(auviCardRegex, auviCard);
 
-const ldCard = '<div className="card planning-kpi"><div className="planning-kpi-top"><div className="kpi-label">LD Mingguan</div><div className="kpi-mini-icon">👥</div></div><div className="kpi-value">{weeklyLdRombels}/{weeklyRombelPopulation ? Math.ceil(weeklyRombelPopulation * 0.5) : 0}</div><div className="kpi-note">≥ 50% unique rombel berjalan</div></div>';
+const ldCard = '<div className="card planning-kpi"><div className="planning-kpi-top"><div className="kpi-label">LD Mingguan</div><div className="kpi-mini-icon">👥</div></div><div className="kpi-value">{weeklyLdRombels}/{weeklyRombelPopulation ? Math.ceil(weeklyRombelPopulation * 0.5) : 0}</div><div className="kpi-note">≥ 50% unique rombel eligible LD</div></div>';
 const ldCardRegex = /<div className="card planning-kpi"><div className="planning-kpi-top"><div className="kpi-label">(?:LD|LD Mingguan)<\/div>[\s\S]*?<\/div><div className="kpi-value">[\s\S]*?<\/div><div className="kpi-note">[\s\S]*?<\/div><\/div>/;
 if (ldCardRegex.test(s)) {
   const matches = s.match(new RegExp(ldCardRegex.source, "g")) || [];
@@ -65,4 +84,4 @@ if (ldCardRegex.test(s)) {
 }
 
 fs.writeFileSync(file, s);
-console.log("Patched Weekly Planning targets: AuVi TV 10 sessions/week; LD >= 50% unique running rombels.");
+console.log("Patched Weekly Planning targets: AuVi TV 10 sessions/week; LD >= 50% unique LD-eligible rombels.");
