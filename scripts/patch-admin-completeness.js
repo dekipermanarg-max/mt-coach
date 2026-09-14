@@ -39,6 +39,14 @@ function patchMonitoring() {
 
 function patchPerformance() {
   let source = fs.readFileSync(performancePath, "utf8");
+
+  // Performance already contains the shared admin logic when the source imports
+  // session-admin directly. Keep the build step idempotent in that case.
+  if (source.includes('from "../../lib/session-admin"')) {
+    fs.writeFileSync(performancePath, source, "utf8");
+    return;
+  }
+
   source = ensureImport(
     source,
     'import { getAdminPercent, isSessionAdminComplete, normalizeStatus } from "../../lib/session-admin";'
