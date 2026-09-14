@@ -1,14 +1,7 @@
 export const AUVI_WEEKLY_TARGET = 10;
 export const LD_TARGET_PERCENT = 50;
 
-// Ujung Gurun LD eligibility is explicitly limited to these two rombels.
-// 12 CHAMP R4.01 is excluded from LD calculations.
-export const LD_ELIGIBLE_ROMBEL_NAMES: Record<string, string[]> = {
-  "Padang - Ujung Gurun": ["6 SD R4.01", "11 SMA R4.01"],
-};
-
 // Number of rombel actually eligible for LD in each branch.
-// Ujung Gurun has 2 eligible rombels, while its operational LD target remains 3 assignments/week.
 export const LD_ELIGIBLE_ROMBEL: Record<string, number> = {
   "Padang - Ujung Gurun": 2,
   "Padang - Tarandam": 6,
@@ -55,7 +48,6 @@ export function getLDEligibleCount(branchName: string) {
 }
 
 export function getLDWeeklyTarget(branchName: string) {
-  if (getBranchTargetKey(branchName) === "Padang - Ujung Gurun") return 3;
   return Math.ceil(getLDEligibleCount(branchName) * LD_TARGET_PERCENT / 100);
 }
 
