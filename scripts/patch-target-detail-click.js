@@ -22,6 +22,13 @@ function injectRoot(source, id, markers) {
   return source.slice(0, index) + `      <div id="${id}" style={{ marginTop: 16 }} />\n\n` + source.slice(index);
 }
 
+function injectFunction(source, fn, markers) {
+  if (source.includes("async function showTargetDetail(kind")) return source;
+  const marker = markers.find(m => source.includes(m));
+  if (!marker) return source;
+  return source.replace(marker, fn + marker);
+}
+
 function patchMonitoring() {
   const file = path.join(process.cwd(), "app/monitoring/page.tsx");
   let s = fs.readFileSync(file, "utf8");
@@ -40,12 +47,10 @@ function patchMonitoring() {
     root.querySelector("button")?.addEventListener("click", () => { root.dataset.open = ""; root.innerHTML = ""; });
   }
 `;
-  if (!s.includes("async function showTargetDetail(kind")) {
-    const marker = s.includes('  const targetWeekRows = filtered.filter(r => r.planning_date >= targetWeekStartStr && r.planning_date <= targetWeekEndStr);')
-      ? '  const targetWeekRows = filtered.filter(r => r.planning_date >= targetWeekStartStr && r.planning_date <= targetWeekEndStr);'
-      : '  const incompleteCount = incompleteRows.length;';
-    if (s.includes(marker)) s = s.replace(marker, marker + "\n\n" + fn);
-  }
+  s = injectFunction(s, fn, [
+    '  const targetWeekRows = filtered.filter(r => r.planning_date >= targetWeekStartStr && r.planning_date <= targetWeekEndStr);',
+    '  const incompleteCount = incompleteRows.length;'
+  ]);
   s = addClickToCard(s, "Target AuVi TV", 'showTargetDetail("auvi")', "Lihat detail assignment AuVi TV", "card planning-kpi monitoring-target-kpi monitoring-auvi-kpi");
   s = addClickToCard(s, "Target LD", 'showTargetDetail("ld")', "Lihat detail assignment LD", "card planning-kpi monitoring-target-kpi monitoring-ld-kpi");
   s = injectRoot(s, "monitoring-target-detail", ['<section className="card monitoring-list-card">', '<section className="card monitoring-card-list">']);
@@ -55,7 +60,6 @@ function patchMonitoring() {
 function patchPlanning() {
   const file = path.join(process.cwd(), "app/planning/page.tsx");
   let s = fs.readFileSync(file, "utf8");
-  const marker = '  const selectedDateLabel = date ? formatDate(date) : "";';
   const fn = `  async function showTargetDetail(kind: "auvi" | "ld") {
     if (!branchId || !date) return;
     const base = new Date(date + "T00:00:00");
@@ -82,12 +86,16 @@ function patchPlanning() {
     root.querySelector("button")?.addEventListener("click", () => { root.dataset.open = ""; root.innerHTML = ""; });
   }
 `;
-  if (!s.includes("async function showTargetDetail(kind")) {
-    if (s.includes(marker)) s = s.replace(marker, fn + marker);
-  }
+  s = injectFunction(s, fn, [
+    '  const selectedDateLabel = formatDate(date);',
+    '  function resetForm() {'
+  ]);
   s = addClickToCard(s, "AuVi TV Mingguan", 'showTargetDetail("auvi")', "Lihat detail assignment AuVi TV");
   s = addClickToCard(s, "LD Mingguan", 'showTargetDetail("ld")', "Lihat detail assignment LD");
-  s = injectRoot(s, "planning-target-detail", ['      <form className="card input-card"', '      <section className="card input-card"']);
+  s = injectRoot(s, "planning-target-detail", [
+    '      <form className="card input-card"',
+    '      <section className="card input-card"'
+  ]);
   fs.writeFileSync(file, s);
 }
 
