@@ -128,8 +128,6 @@ export default function PlanningPage() {
   useEffect(() => { loadMasters(); }, [branch]);
   useEffect(() => { loadSessions(); }, [branch, date]);
 
-  // Weekly progress uses actual planning activity, but the LD denominator is NEVER
-  // derived from Planning. It is the fixed absolute eligible-rombel target for the branch.
   useEffect(() => {
     let cancelled = false;
     async function loadWeeklyProgress() {
@@ -270,7 +268,7 @@ export default function PlanningPage() {
         <div className="planning-table-head"><div><h2>Daftar Sesi</h2><p>{branch} · {selectedDateLabel}</p></div><span className="section-chip">{sessions.length} sesi Draft</span></div>
         <div className="planning-table-wrap"><table><thead><tr><th>MT</th><th>Rombel</th><th>Mapel</th><th>Jenis</th><th>AuVi TV</th><th>LD</th><th>Aksi</th></tr></thead><tbody>
           {loading ? <tr><td colSpan={7}><div className="empty-state"><strong>Memuat data…</strong></div></td></tr> : sessions.length === 0 ? <tr><td colSpan={7}><div className="empty-state"><div className="empty-icon">📋</div><strong>Belum ada sesi Draft</strong><p>Jika sesi sebelumnya sudah Finalize, sesi tersebut sudah masuk ke Monitoring. Tambahkan sesi baru di form di atas.</p></div></td></tr> : sessions.map((session) => (
-            <tr key={session.id}><td><span className="table-primary">{nameOf(mtRows, session.mt_id)}</span></td><td>{nameOf(rombelRows, session.rombel_id)}</td><td><span className="table-primary">{nameOf(mapelRows, session.mapel_id)}</span></td><td>{session.jenis_sesi}</td><td><span className={`badge ${session.auvi_tv ? "green" : "blue"}`}>{session.auvi_tv ? "✓ Assigned" : "— Belum"}</span></td><td><span className={`badge ${session.ld ? "green" : "blue"}`}>{session.ld ? "✓ Assigned" : "— Belum"}</span></td><td><div style={{ display: "flex", gap: 8 }}><button className="secondary-btn" type="button" onClick={() => startEdit(session)}>✏️ Edit</button><button className="row-delete" type="button" onClick={() => deleteSession(session.id)}>Hapus</button></div></td></tr>
+            <tr key={session.id}><td><span className="table-primary">{nameOf(mtRows, session.mt_id)}</span></td><td>{nameOf(rombelRows, session.rombel_id)}</td><td><span className="table-primary">{nameOf(mapelRows, session.mapel_id)}</span></td><td>{session.jenis_sesi}</td><td><span className={`badge ${session.auvi_tv ? "green" : "blue"}`}>{session.auvi_tv ? "✓ Assigned" : "— Belum"}</span></td><td><span className={`badge ${session.ld ? "green" : "blue"}`}>{session.ld ? "✓ Assigned" : "— Belum"}</span></td><td><div style={{ display: "flex", gap: 8 }}><button className="row-delete" type="button" onClick={() => deleteSession(session.id)}>Hapus</button><button className="secondary-btn" type="button" onClick={() => startEdit(session)}>✏️ Edit</button></div></td></tr>
           ))}
         </tbody></table></div>
       </section>
