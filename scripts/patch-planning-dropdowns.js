@@ -45,5 +45,10 @@ const replacement = `  async function loadMasters() {
 
 s = s.slice(0, start) + replacement + s.slice(end);
 
+// Keep the Planning action order consistent: destructive action first, then edit.
+const oldActions = '<button className="secondary-btn" type="button" onClick={() => startEdit(session)}>✏️ Edit</button><button className="row-delete" type="button" onClick={() => deleteSession(session.id)}>Hapus</button>';
+const newActions = '<button className="row-delete" type="button" onClick={() => deleteSession(session.id)}>Hapus</button><button className="secondary-btn" type="button" onClick={() => startEdit(session)}>✏️ Edit</button>';
+if (s.includes(oldActions)) s = s.replace(oldActions, newActions);
+
 fs.writeFileSync(file, s);
-console.log("Patched Weekly Planning: master dropdowns load independently of branch/session loading:", file);
+console.log("Patched Weekly Planning: master dropdowns load independently of branch/session loading; Hapus is before Edit Sesi:", file);
