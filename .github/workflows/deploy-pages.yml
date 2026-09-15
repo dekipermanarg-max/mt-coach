@@ -34,6 +34,8 @@ jobs:
         run: node scripts/fix-monitoring-tail.js
       - name: Patch Monitoring UI
         run: node scripts/patch-monitoring.js
+      - name: Show Monitoring Semua Lengkap action
+        run: node scripts/patch-monitoring-complete-all.js
       - name: Guarantee Monitoring Topik Checkbox
         run: node scripts/patch-monitoring-topik-checkbox.js
       - name: Differentiate Monitoring Session Types
