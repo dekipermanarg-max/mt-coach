@@ -80,6 +80,7 @@ jobs:
         continue-on-error: true
       - name: Patch Weekly Planning Date Range
         run: node scripts/patch-weekly-date-range.js
+        continue-on-error: true
       - name: Patch Target Detail Clicks
         run: node scripts/patch-target-detail-click.js
       - name: Patch Dashboard Branding
