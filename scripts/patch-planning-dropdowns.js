@@ -45,10 +45,11 @@ const replacement = `  async function loadMasters() {
 
 s = s.slice(0, start) + replacement + s.slice(end);
 
-// Keep the Planning action order consistent: destructive action first, then edit.
-const oldActions = '<button className="secondary-btn" type="button" onClick={() => startEdit(session)}>✏️ Edit</button><button className="row-delete" type="button" onClick={() => deleteSession(session.id)}>Hapus</button>';
-const newActions = '<button className="row-delete" type="button" onClick={() => deleteSession(session.id)}>Hapus</button><button className="secondary-btn" type="button" onClick={() => startEdit(session)}>✏️ Edit</button>';
-if (s.includes(oldActions)) s = s.replace(oldActions, newActions);
+// Force the Planning row actions to remain visible and in the requested order.
+const oldActionBlock = '<td><div style={{ display: "flex", gap: 8 }}><button className="row-delete" type="button" onClick={() => deleteSession(session.id)}>Hapus</button><button className="secondary-btn" type="button" onClick={() => startEdit(session)}>✏️ Edit</button></div></td>';
+const newActionBlock = '<td><div style={{ display: "flex", gap: 8, alignItems: "center", whiteSpace: "nowrap" }}><button type="button" onClick={() => deleteSession(session.id)} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", visibility: "visible", opacity: 1, border: "1px solid #fecaca", background: "#fff", color: "#b91c1c", borderRadius: 10, padding: "10px 15px", cursor: "pointer", fontWeight: 700 }}>🗑️ Hapus</button><button type="button" onClick={() => startEdit(session)} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", visibility: "visible", opacity: 1, border: "1px solid #d8dee8", background: "#fff", color: "#334155", borderRadius: 10, padding: "10px 15px", cursor: "pointer", fontWeight: 700 }}>✏️ Edit Sesi</button></div></td>';
+if (!s.includes(oldActionBlock)) throw new Error("Planning action block marker not found");
+s = s.replace(oldActionBlock, newActionBlock);
 
 fs.writeFileSync(file, s);
-console.log("Patched Weekly Planning: master dropdowns load independently of branch/session loading; Hapus is before Edit Sesi:", file);
+console.log("Patched Weekly Planning: master dropdowns load independently; Hapus and Edit Sesi are visible with Hapus first:", file);
