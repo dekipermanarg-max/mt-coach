@@ -83,12 +83,15 @@ jobs:
         continue-on-error: true
       - name: Patch Target Detail Clicks
         run: node scripts/patch-target-detail-click.js
+        continue-on-error: true
       - name: Patch Dashboard Branding
         run: node scripts/patch-branding.js
       - name: Patch WhatsApp Template Manager
         run: node scripts/patch-data-whatsapp.js
+        continue-on-error: true
       - name: Patch WhatsApp Poster Download Button
         run: node scripts/patch-wa-poster-button.js
+        continue-on-error: true
       - name: Final Monitoring build safety check
         run: node scripts/patch-monitoring-build-safety.js
       - name: Build static site
