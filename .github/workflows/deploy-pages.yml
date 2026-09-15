@@ -77,6 +77,7 @@ jobs:
         run: node scripts/patch-planning-dropdowns.js
       - name: Patch Weekly AuVi Target
         run: node scripts/patch-planning-weekly-target.js
+        continue-on-error: true
       - name: Patch Weekly Planning Date Range
         run: node scripts/patch-weekly-date-range.js
       - name: Patch Target Detail Clicks
