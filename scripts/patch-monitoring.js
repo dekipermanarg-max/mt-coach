@@ -24,14 +24,19 @@ if (!s.includes('async function saveSessionEdit')) {
   s = s.replace(fnNeedle, fnAdd + fnNeedle);
 }
 
-const bodyNeedle = '<div className="monitoring-card-body"><div className="monitoring-admin-title"';
-const bodyReplace = '<div className="monitoring-card-body"><div className="monitoring-session-actions"><button type="button" className="secondary-btn" onClick={() => startEdit(row)}>✏️ Edit Sesi</button><button type="button" className="danger-btn" onClick={() => removeFromMonitoring(row)} disabled={deletingId === row.id}>{deletingId === row.id ? "⏳ Menghapus..." : "🗑️ Hapus"}</button></div><div className="monitoring-admin-title"';
-const currentActionNeedle = '<div className="monitoring-card-body"><div className="monitoring-session-actions"><span className="badge blue">AuVi: {row.auvi_tv ? "Ya" : "Tidak"} · LD: {row.ld ? "Ya" : "Tidak"}</span></div><div className="monitoring-admin-title"';
-if (!s.includes('monitoring-session-actions')) {
+// Keep all three session actions in ONE row, in the requested order:
+// [✓ Semua Lengkap] [✏️ Edit Sesi] [🗑️ Hapus]
+const titleCompleteButton = '{!complete && <button type="button" className="complete-all-btn" disabled={saving === row.id} onClick={() => completeAllCheckboxes(row)}>✓ Semua Lengkap</button>}';
+s = s.replace(titleCompleteButton, '');
+
+const actionRow = '<div className="monitoring-session-actions">{!complete && <button type="button" className="complete-all-btn" disabled={saving === row.id} onClick={() => completeAllCheckboxes(row)}>✓ Semua Lengkap</button>}<button type="button" className="secondary-btn" onClick={() => startEdit(row)}>✏️ Edit Sesi</button><button type="button" className="danger-btn" onClick={() => removeFromMonitoring(row)} disabled={deletingId === row.id}>{deletingId === row.id ? "⏳ Menghapus..." : "🗑️ Hapus"}</button></div>';
+const existingActionRow = /<div className="monitoring-session-actions">[\s\S]*?<\/div><div className="monitoring-admin-title">/;
+if (existingActionRow.test(s)) {
+  s = s.replace(existingActionRow, actionRow + '<div className="monitoring-admin-title">');
+} else {
+  const bodyNeedle = '<div className="monitoring-card-body"><div className="monitoring-admin-title">';
   if (!s.includes(bodyNeedle)) throw new Error('card body marker not found');
-  s = s.replace(bodyNeedle, bodyReplace);
-} else if (s.includes(currentActionNeedle)) {
-  s = s.replace(currentActionNeedle, bodyReplace);
+  s = s.replace(bodyNeedle, '<div className="monitoring-card-body">' + actionRow + '<div className="monitoring-admin-title">');
 }
 
 const beforeWaNeedle = '    {showWaReport && <div className="wa-modal-backdrop"';
@@ -42,7 +47,7 @@ if (!s.includes('session-edit-modal')) {
 }
 
 const styleNeedle = '<style>{`';
-const styleAdd = '.monitoring-session-actions{display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #eef2f7}.danger-btn{border:1px solid #fecaca;background:#fff1f2;color:#b91c1c;border-radius:10px;padding:9px 12px;font-weight:700;cursor:pointer}.danger-btn:disabled{opacity:.55;cursor:not-allowed}.session-edit-modal{width:min(760px,100%)}.session-edit-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:18px}.session-edit-grid .option-pill{align-self:end}@media(max-width:700px){.session-edit-grid{grid-template-columns:1fr}.monitoring-session-actions{justify-content:stretch}.monitoring-session-actions button{flex:1}}.wa-modal .wa-report-summary{display:grid!important;grid-template-columns:auto auto minmax(180px,220px);gap:10px;align-items:stretch;margin:18px 0 10px}.wa-modal .wa-report-summary>.badge{align-self:center;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;height:36px;min-height:36px;padding:0 12px;flex:0 0 auto}.wa-modal .wa-report-summary>.control-box{min-width:180px!important;margin:0;padding:11px 14px;min-height:64px;display:flex;flex-direction:column;justify-content:center}.wa-modal .wa-report-summary .date-input{min-width:0;width:100%}@media(max-width:700px){.wa-modal .wa-report-summary{grid-template-columns:1fr 1fr}.wa-modal .wa-report-summary>.control-box{grid-column:1/-1;width:100%}}';
+const styleAdd = '.monitoring-session-actions{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #eef2f7}.danger-btn{border:1px solid #fecaca;background:#fff1f2;color:#b91c1c;border-radius:10px;padding:9px 12px;font-weight:700;cursor:pointer}.danger-btn:disabled{opacity:.55;cursor:not-allowed}.session-edit-modal{width:min(760px,100%)}.session-edit-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:18px}.session-edit-grid .option-pill{align-self:end}@media(max-width:700px){.session-edit-grid{grid-template-columns:1fr}.monitoring-session-actions{justify-content:stretch}.monitoring-session-actions button{flex:1}}.wa-modal .wa-report-summary{display:grid!important;grid-template-columns:auto auto minmax(180px,220px);gap:10px;align-items:stretch;margin:18px 0 10px}.wa-modal .wa-report-summary>.badge{align-self:center;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;height:36px;min-height:36px;padding:0 12px;flex:0 0 auto}.wa-modal .wa-report-summary>.control-box{min-width:180px!important;margin:0;padding:11px 14px;min-height:64px;display:flex;flex-direction:column;justify-content:center}.wa-modal .wa-report-summary .date-input{min-width:0;width:100%}@media(max-width:700px){.wa-modal .wa-report-summary{grid-template-columns:1fr 1fr}.wa-modal .wa-report-summary>.control-box{grid-column:1/-1;width:100%}}';
 if (!s.includes('monitoring-session-actions')) throw new Error('action marker not yet present');
 s = s.replace(styleNeedle, styleNeedle + styleAdd);
 
