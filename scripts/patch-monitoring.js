@@ -29,7 +29,9 @@ if (!s.includes('async function saveSessionEdit')) {
 const titleCompleteButton = '{!complete && <button type="button" className="complete-all-btn" disabled={saving === row.id} onClick={() => completeAllCheckboxes(row)}>✓ Semua Lengkap</button>}';
 s = s.replace(titleCompleteButton, '');
 
-const actionRow = '<div className="monitoring-session-actions">{!complete && <button type="button" className="complete-all-btn" disabled={saving === row.id} onClick={() => completeAllCheckboxes(row)}>✓ Semua Lengkap</button>}<button type="button" className="secondary-btn" onClick={() => startEdit(row)}>✏️ Edit Sesi</button><button type="button" className="danger-btn" onClick={() => removeFromMonitoring(row)} disabled={deletingId === row.id}>{deletingId === row.id ? "⏳ Menghapus..." : "🗑️ Hapus"}</button></div>';
+// Keep "Semua Lengkap" visible even after a session is already complete.
+// It remains idempotent: clicking it simply re-applies all completeness flags.
+const actionRow = '<div className="monitoring-session-actions"><button type="button" className="complete-all-btn" disabled={saving === row.id} onClick={() => completeAllCheckboxes(row)}>✓ Semua Lengkap</button><button type="button" className="secondary-btn" onClick={() => startEdit(row)}>✏️ Edit Sesi</button><button type="button" className="danger-btn" onClick={() => removeFromMonitoring(row)} disabled={deletingId === row.id}>{deletingId === row.id ? "⏳ Menghapus..." : "🗑️ Hapus"}</button></div>';
 const existingActionRow = /<div className="monitoring-session-actions">[\s\S]*?<\/div><div className="monitoring-admin-title">/;
 if (existingActionRow.test(s)) {
   s = s.replace(existingActionRow, actionRow + '<div className="monitoring-admin-title">');
