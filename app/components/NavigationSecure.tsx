@@ -17,11 +17,10 @@ export default function NavigationSecure() {
   if (loading || !profile) return null;
 
   const canSeeActivityLog = profile.role === "SUPERADMIN" || profile.role === "MTC";
+  const canSeeData = profile.display_name === "Mutiara Ratu Salsabila";
   const visibleItems = profile.module_scope === "MATHCHAMPS_ONLY"
-    ? items.filter(([href]) => href === "/sessions" || (href === "/activity-log" && canSeeActivityLog))
-    : canSeeActivityLog
-      ? items
-      : items.filter(([href]) => href !== "/activity-log");
+    ? items.filter(([href]) => href === "/sessions" || href === "/data" && canSeeData || href === "/activity-log" && canSeeActivityLog)
+    : canSeeActivityLog ? items : items.filter(([href]) => href !== "/activity-log");
 
   return <>
     <nav className="app-nav" aria-label="Dashboard Administrasi MT Regional Sumbar"><div className="app-nav-inner">
