@@ -2,9 +2,10 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
-import { getLDWeeklyTarget, getLDEligibleCount, isLDEligibleRombel } from "../../lib/targets";
+import { getLDWeeklyTarget, getLDEligibleCount, isLDEligibleRombel, getLDWeeklyTargetForBranches } from "../../lib/targets";
 
 const BRANCHES = [
+  "Semua Cabang",
   "Bukittinggi - Jambu Air",
   "Bukittinggi - Manggis Ganting",
   "Painan - Pagaruyung",
@@ -16,11 +17,12 @@ const BRANCHES = [
   "Padang - Tarandam",
   "Padang - Ujung Gurun",
 ];
-const DEFAULT_DATE = "2026-08-31";
+const ALL_BRANCHES = "Semua Cabang";
 const SESSION_TYPES = ["KBM", "Klinik PR", "Trial Class"] as const;
 const AUVI_WEEKLY_TARGET = 10;
 
 type MasterRow = { id: string; name: string };
+type BranchRow = { id: string; name: string };
 type PlanningRow = {
   id: string;
   planning_date: string;
@@ -31,9 +33,16 @@ type PlanningRow = {
   mt_id: string | null;
   rombel_id: string | null;
   mapel_id: string | null;
+  branch_id?: string | null;
 };
 
-type WeeklyTargetRow = { rombel_id: string | null; auvi_tv: boolean; ld: boolean };
+type WeeklyTargetRow = { branch_id: string | null; rombel_id: string | null; auvi_tv: boolean; ld: boolean };
+
+function getTodayLocal() {
+  const d = new Date();
+  const offset = d.getTimezoneOffset();
+  return new Date(d.getTime() - offset * 60 * 1000).toISOString().slice(0, 10);
+}
 
 function formatDate(date: string) {
   return new Intl.DateTimeFormat("id-ID", {
@@ -56,9 +65,10 @@ function getWeekRange(date: string) {
 }
 
 export default function PlanningPage() {
-  const [date, setDate] = useState(DEFAULT_DATE);
-  const [branch, setBranch] = useState(BRANCHES[0]);
+  const [date, setDate] = useState(getTodayLocal());
+  const [branch, setBranch] = useState(ALL_BRANCHES);
   const [branchId, setBranchId] = useState("");
+  const [branchRows, setBranchRows] = useState<BranchRow[]>([]);
   const [sessions, setSessions] = useState<PlanningRow[]>([]);
   const [mtRows, setMtRows] = useState<MasterRow[]>([]);
   const [rombelRows, setRombelRows] = useState<MasterRow[]>([]);
@@ -77,23 +87,30 @@ export default function PlanningPage() {
   const [weeklyLdRombels, setWeeklyLdRombels] = useState(0);
 
   async function loadMasters() {
-    const [b, mtRes, rRes, mRes] = await Promise.all([
-      supabase.from("branches").select("id,name").eq("name", branch).single(),
+    const [bRes, mtRes, rRes, mRes] = await Promise.all([
+      supabase.from("branches").select("id,name").eq("active", true).order("name"),
       supabase.from("master_mt").select("id,name").eq("active", true).order("name"),
       supabase.from("master_rombel").select("id,name").eq("active", true).order("name"),
       supabase.from("master_mapel").select("id,name").eq("active", true).order("name"),
     ]);
-    if (b.data) setBranchId(b.data.id);
+    const allBranches = (bRes.data || []) as BranchRow[];
+    setBranchRows(allBranches);
+    if (branch === ALL_BRANCHES) setBranchId("");
+    else setBranchId(allBranches.find((b) => b.name === branch)?.id || "");
     setMtRows(mtRes.data || []);
     setRombelRows(rRes.data || []);
     setMapelRows(mRes.data || []);
     setMt(mtRes.data?.[0]?.id || "");
     setRombel(rRes.data?.[0]?.id || "");
     setMapel(mRes.data?.[0]?.id || "");
-    if (b.error || mtRes.error || rRes.error || mRes.error) setMessage("Gagal memuat master data dari database.");
+    if (bRes.error || mtRes.error || rRes.error || mRes.error) setMessage("Gagal memuat master data dari database.");
   }
 
   async function resolveBranchId() {
+    if (branch === ALL_BRANCHES) {
+      setBranchId("");
+      return "";
+    }
     const b = await supabase.from("branches").select("id").eq("name", branch).single();
     if (b.data) {
       setBranchId(b.data.id);
@@ -106,18 +123,14 @@ export default function PlanningPage() {
   async function loadSessions() {
     setLoading(true);
     const id = await resolveBranchId();
-    if (!id) {
-      setSessions([]);
-      setLoading(false);
-      return;
-    }
-    const { data, error } = await supabase
+    let query = supabase
       .from("weekly_planning")
-      .select("id,planning_date,jenis_sesi,auvi_tv,ld,status,mt_id,rombel_id,mapel_id")
-      .eq("branch_id", id)
+      .select("id,planning_date,jenis_sesi,auvi_tv,ld,status,mt_id,rombel_id,mapel_id,branch_id")
       .eq("planning_date", date)
       .eq("status", "Draft")
       .order("created_at");
+    if (id) query = query.eq("branch_id", id);
+    const { data, error } = await query;
     if (error) {
       setMessage(`Gagal memuat planning: ${error.message}`);
       setSessions([]);
@@ -131,26 +144,31 @@ export default function PlanningPage() {
   useEffect(() => {
     let cancelled = false;
     async function loadWeeklyProgress() {
-      if (!branchId) {
-        setWeeklyAuviSessions(0);
-        setWeeklyLdRombels(0);
-        return;
-      }
       const { start, end } = getWeekRange(date);
-      const { data } = await supabase
+      let query = supabase
         .from("weekly_planning")
-        .select("rombel_id,auvi_tv,ld")
-        .eq("branch_id", branchId)
+        .select("branch_id,rombel_id,auvi_tv,ld")
         .gte("planning_date", start)
         .lte("planning_date", end);
+      if (branch !== ALL_BRANCHES && branchId) query = query.eq("branch_id", branchId);
+      const { data } = await query;
       if (cancelled) return;
       const rows = (data || []) as WeeklyTargetRow[];
       setWeeklyAuviSessions(rows.filter(r => r.auvi_tv).length);
-      setWeeklyLdRombels(new Set(rows.filter(r => r.ld && isLDEligibleRombel(branch, r.rombel_id)).map(r => r.rombel_id).filter(Boolean)).size);
+      if (branch === ALL_BRANCHES) {
+        const branchNameById = new Map(branchRows.map((b) => [b.id, b.name]));
+        const eligiblePairs = rows
+          .filter(r => r.ld && r.rombel_id)
+          .filter(r => isLDEligibleRombel(branchNameById.get(r.branch_id || "") || "", r.rombel_id))
+          .map(r => `${r.branch_id}:${r.rombel_id}`);
+        setWeeklyLdRombels(new Set(eligiblePairs).size);
+      } else {
+        setWeeklyLdRombels(new Set(rows.filter(r => r.ld && isLDEligibleRombel(branch, r.rombel_id)).map(r => r.rombel_id).filter(Boolean)).size);
+      }
     }
     loadWeeklyProgress();
     return () => { cancelled = true; };
-  }, [branchId, branch, date, sessions]);
+  }, [branchId, branch, date, branchRows]);
 
   const selectedDateLabel = formatDate(date);
   const nameOf = (rows: MasterRow[], id: string | null) => rows.find((x) => x.id === id)?.name || "—";
@@ -158,8 +176,8 @@ export default function PlanningPage() {
   const auviRombels = new Set(sessions.filter((s) => s.auvi_tv).map((s) => s.rombel_id).filter(Boolean)).size;
   const auviCoverage = totalRombels ? Math.round((auviRombels / totalRombels) * 100) : 0;
   const ldCount = sessions.filter((s) => s.ld).length;
-  const ldEligible = getLDEligibleCount(branch);
-  const ldTarget = getLDWeeklyTarget(branch);
+  const ldEligible = branch === ALL_BRANCHES ? branchRows.reduce((total, b) => total + getLDEligibleCount(b.name), 0) : getLDEligibleCount(branch);
+  const ldTarget = branch === ALL_BRANCHES ? getLDWeeklyTargetForBranches(branchRows.map((b) => b.name)) : getLDWeeklyTarget(branch);
 
   function resetForm() {
     setEditingId(null);
@@ -184,7 +202,10 @@ export default function PlanningPage() {
 
   async function addOrUpdateSession(e: FormEvent) {
     e.preventDefault();
-    if (!branchId || !mt || !rombel || !mapel) return;
+    if (!branchId || !mt || !rombel || !mapel) {
+      if (!branchId) setMessage("Pilih cabang terlebih dahulu sebelum menambah atau mengedit sesi.");
+      return;
+    }
     const payload = { branch_id: branchId, planning_date: date, mt_id: mt, rombel_id: rombel, mapel_id: mapel, jenis_sesi: type, auvi_tv: auviTv, ld, status: "Draft" };
     const result = editingId
       ? await supabase.from("weekly_planning").update(payload).eq("id", editingId).eq("status", "Draft")
@@ -261,7 +282,7 @@ export default function PlanningPage() {
           <label className="planning-field"><span>Jenis Sesi</span><select value={type} onChange={(e) => setType(e.target.value as (typeof SESSION_TYPES)[number])}><option>KBM</option><option>Klinik PR</option><option>Trial Class</option></select></label>
         </div>
         <div className="planning-options"><label className="option-pill"><input type="checkbox" checked={auviTv} onChange={(e) => setAuviTv(e.target.checked)} /> 🎥 AuVi TV</label><label className="option-pill"><input type="checkbox" checked={ld} onChange={(e) => setLd(e.target.checked)} /> 👥 LD</label></div>
-        <div style={{ display: "flex", gap: 10 }}><button className="add-session-btn" type="submit" disabled={loading}>{editingId ? "💾 Simpan Perubahan" : "＋ Tambah Sesi"}</button>{editingId && <button type="button" className="secondary-btn" onClick={resetForm}>Batal</button>}</div>
+        <div style={{ display: "flex", gap: 10 }}><button className="add-session-btn" type="submit" disabled={loading || !branchId}>{editingId ? "💾 Simpan Perubahan" : "＋ Tambah Sesi"}</button>{editingId && <button type="button" className="secondary-btn" onClick={resetForm}>Batal</button>}</div>
       </form>
 
       <section className="card planning-table-card">
@@ -273,7 +294,7 @@ export default function PlanningPage() {
         </tbody></table></div>
       </section>
 
-      <div className="finalize-bar"><div><strong>{branch}</strong><small>{message || "Input sesi selesai? Simpan dulu sebagai Draft."}</small></div><div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}><button className="secondary-btn" type="button" onClick={saveDraft} disabled={sessions.length === 0}>📝 Simpan sebagai Draft</button><button className="finalize-btn" type="button" onClick={finalize} disabled={sessions.length === 0}>🔒 Finalize Planning</button></div></div>
+      <div className="finalize-bar"><div><strong>{branch}</strong><small>{message || "Input sesi selesai? Simpan dulu sebagai Draft."}</small></div><div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}><button className="secondary-btn" type="button" onClick={saveDraft} disabled={sessions.length === 0 || !branchId}>📝 Simpan sebagai Draft</button><button className="finalize-btn" type="button" onClick={finalize} disabled={sessions.length === 0 || !branchId}>🔒 Finalize Planning</button></div></div>
 
       {modal && <div className="modal-backdrop" role="dialog" aria-modal="true" onClick={() => setModal(null)}><div className="modal-card" onClick={(e) => e.stopPropagation()}><div className="modal-icon">{modal === "finalize" ? "🔒" : "📝"}</div><h3>{modal === "finalize" ? "Planning berhasil difinalisasi" : "Draft berhasil disimpan"}</h3><p>{modal === "finalize" ? "Sesi sudah masuk ke Monitoring untuk dilengkapi administrasinya. Sesi tersebut tidak lagi tampil di Weekly Planning." : "Sesi tetap berada di Weekly Planning dan masih dapat diedit sebelum Finalize."}</p><button className="finalize-btn" type="button" onClick={() => setModal(null)}>OK, Mengerti</button></div></div>}
     </div>
