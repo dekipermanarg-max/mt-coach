@@ -72,10 +72,9 @@ export default function SessionsPageV2() {
   }
 
   function openAddForm() {
-    const branchId = branches[0]?.id || "";
-    const defaultMtId = mts[0]?.id || "";
     setEditingId(null);
-    setForm({ ...EMPTY, branch_id: branchId, mt_id: defaultMtId });
+    // Keep both selections neutral. Branch and MT are independent in Matchchamps.
+    setForm({ ...EMPTY, branch_id: "", mt_id: "" });
     setAdmin({ attendance: false, teacher_notes: false });
     setMessage("");
     setShowForm(true);
