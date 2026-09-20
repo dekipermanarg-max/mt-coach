@@ -76,7 +76,7 @@ export default function PlanningPage() {
   const [mt, setMt] = useState("");
   const [rombel, setRombel] = useState("");
   const [mapel, setMapel] = useState("");
-  const [type, setType] = useState<(typeof SESSION_TYPES)[number]>("KBM");
+  const [type, setType] = useState<"" | (typeof SESSION_TYPES)[number]>("");
   const [auviTv, setAuviTv] = useState(false);
   const [ld, setLd] = useState(false);
   const [message, setMessage] = useState("");
@@ -100,9 +100,7 @@ export default function PlanningPage() {
     setMtRows(mtRes.data || []);
     setRombelRows(rRes.data || []);
     setMapelRows(mRes.data || []);
-    setMt(mtRes.data?.[0]?.id || "");
-    setRombel(rRes.data?.[0]?.id || "");
-    setMapel(mRes.data?.[0]?.id || "");
+    // Keep the form neutral: no field is preselected on load.
     if (bRes.error || mtRes.error || rRes.error || mRes.error) setMessage("Gagal memuat master data dari database.");
   }
 
@@ -181,10 +179,10 @@ export default function PlanningPage() {
 
   function resetForm() {
     setEditingId(null);
-    setMt(mtRows[0]?.id || "");
-    setRombel(rombelRows[0]?.id || "");
-    setMapel(mapelRows[0]?.id || "");
-    setType("KBM");
+    setMt("");
+    setRombel("");
+    setMapel("");
+    setType("");
     setAuviTv(false);
     setLd(false);
   }
@@ -202,7 +200,7 @@ export default function PlanningPage() {
 
   async function addOrUpdateSession(e: FormEvent) {
     e.preventDefault();
-    if (!branchId || !mt || !rombel || !mapel) {
+    if (!branchId || !mt || !rombel || !mapel || !type) {
       if (!branchId) setMessage("Pilih cabang terlebih dahulu sebelum menambah atau mengedit sesi.");
       return;
     }
@@ -276,10 +274,10 @@ export default function PlanningPage() {
       <form className="card input-card" onSubmit={addOrUpdateSession}>
         <div className="section-title"><div><h2>{editingId ? "Edit Sesi" : "Tambah Sesi"}</h2><p>{editingId ? "Perbarui detail sesi lalu simpan perubahan." : <>Input sesi untuk <strong>{selectedDateLabel}</strong>. Jam tidak diperlukan.</>}</p></div><span className="section-chip">SHARED DATABASE</span></div>
         <div className="planning-form-grid">
-          <label className="planning-field"><span>MT</span><select value={mt} onChange={(e) => setMt(e.target.value)} disabled={loading} required>{mtRows.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-          <label className="planning-field"><span>Rombel</span><select value={rombel} onChange={(e) => setRombel(e.target.value)} disabled={loading} required>{rombelRows.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-          <label className="planning-field"><span>Mapel</span><select value={mapel} onChange={(e) => setMapel(e.target.value)} disabled={loading} required>{mapelRows.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-          <label className="planning-field"><span>Jenis Sesi</span><select value={type} onChange={(e) => setType(e.target.value as (typeof SESSION_TYPES)[number])}><option>KBM</option><option>Klinik PR</option><option>Trial Class</option></select></label>
+          <label className="planning-field"><span>MT</span><select value={mt} onChange={(e) => setMt(e.target.value)} disabled={loading} required><option value="">Pilih MT</option>{mtRows.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+          <label className="planning-field"><span>Rombel</span><select value={rombel} onChange={(e) => setRombel(e.target.value)} disabled={loading} required><option value="">Pilih rombel</option>{rombelRows.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+          <label className="planning-field"><span>Mapel</span><select value={mapel} onChange={(e) => setMapel(e.target.value)} disabled={loading} required><option value="">Pilih mata pelajaran</option>{mapelRows.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+          <label className="planning-field"><span>Jenis Sesi</span><select value={type} onChange={(e) => setType(e.target.value as "" | (typeof SESSION_TYPES)[number])} required><option value="">Pilih jenis sesi</option>{SESSION_TYPES.map((item) => <option key={item}>{item}</option>)}</select></label>
         </div>
         <div className="planning-options"><label className="option-pill"><input type="checkbox" checked={auviTv} onChange={(e) => setAuviTv(e.target.checked)} /> 🎥 AuVi TV</label><label className="option-pill"><input type="checkbox" checked={ld} onChange={(e) => setLd(e.target.checked)} /> 👥 LD</label></div>
         <div style={{ display: "flex", gap: 10 }}><button className="add-session-btn" type="submit" disabled={loading || !branchId}>{editingId ? "💾 Simpan Perubahan" : "＋ Tambah Sesi"}</button>{editingId && <button type="button" className="secondary-btn" onClick={resetForm}>Batal</button>}</div>
