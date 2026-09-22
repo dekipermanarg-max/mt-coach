@@ -240,7 +240,7 @@ export default function PlanningPage() {
 
   async function finalize() {
     if (!branchId || sessions.length === 0) return;
-    const { error } = await supabase.from("weekly_planning").update({ status: "Finalized", updated_at: new Date().toISOString() }).eq("branch_id", branchId).eq("planning_date", date).eq("status", "Draft");
+    const { error } = await supabase.from("weekly_planning").update({ status: "Finalized", finalized_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq("branch_id", branchId).eq("planning_date", date).eq("status", "Draft");
     if (error) {
       setMessage(`Gagal finalisasi: ${error.message}`);
       return;
