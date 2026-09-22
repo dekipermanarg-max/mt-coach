@@ -54,33 +54,27 @@ export default function Monitoring() {
       supabase.from("master_mapel").select("id,name").eq("active", true).order("name"),
     ]);
     setBranches(b.data || []); setMts(mt.data || []); setRombels(r.data || []); setMapels(m.data || []);
-    // Monitoring uses Weekly Planning as the canonical source. Production deploy trigger: 2026-09-22.
-    // Fetch Finalized rows explicitly and surface the exact database error instead of
-    // silently rendering an empty state when RLS/query/deployment issues occur.
-    const columns = "id,created_at,planning_date,branch_id,mt_id,rombel_id,mapel_id,jenis_sesi,auvi_tv,ld,topik_sub_topik,topik_sub_topik_done,attendance,starchamps,activity_score,report_sessions,foto_kbm,report_wa,auvi_tv_status,ld_status,status";
-    // Fetch accessible Weekly Planning rows first and select Finalized client-side.
-    // This avoids relying on a status filter that can behave differently across
-    // older PostgREST/RLS deployments.
-    const { data, error } = await supabase.from("weekly_planning")
-      .select(columns)
-      .order("planning_date", { ascending: true })
-      .order("created_at", { ascending: true });
+    // Monitoring reads Finalized Weekly Planning through a SECURITY DEFINER RPC.
+    // The RPC enforces branch access with private.has_branch_access(), so this page
+    // does not depend on PostgREST applying weekly_planning RLS correctly.
+    const { data, error } = await supabase.rpc("get_monitoring_finalized");
     if (error) {
-      console.error("[Monitoring] weekly_planning Finalized query failed:", error);
+      console.error("[Monitoring] get_monitoring_finalized RPC failed:", error);
       setRows([]);
       setStartDate("");
       setEndDate("");
       setMessage(`Gagal memuat Monitoring: ${error.message}`);
     } else {
-      const nextRows = (data || []).filter((row: any) => row.status === "Finalized") as MonitoringRow[];
+      const nextRows = (data || []) as MonitoringRow[];
       setRows(nextRows);
       if (nextRows.length) {
         const dates = nextRows.map(x => x.planning_date).sort();
         setStartDate(dates[0]); setEndDate(dates[dates.length - 1]);
+        setMessage("");
       } else {
         setStartDate("");
         setEndDate("");
-        setMessage("Tidak ada sesi Finalized yang dapat diakses akun ini. Jika sesi sudah Finalized di Weekly Planning, cek akses cabang akun.");
+        setMessage("Tidak ada sesi Finalized yang dapat diakses akun ini.");
       }
     }
     setLoading(false);
