@@ -47,6 +47,19 @@ export default function Monitoring() {
 
   async function load() {
     setLoading(true);
+
+    // Pastikan auth session sudah direstore sebelum memanggil RPC/RLS-protected masters.
+    // Tanpa ini, initial load bisa balapan dengan Supabase Auth dan menghasilkan 0 sesi.
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      setRows([]);
+      setStartDate("");
+      setEndDate("");
+      setMessage("Sesi login belum siap. Silakan refresh halaman Monitoring.");
+      setLoading(false);
+      return;
+    }
+
     const [b, mt, r, m] = await Promise.all([
       supabase.from("branches").select("id,name").eq("active", true).order("name"),
       supabase.from("master_mt").select("id,name").eq("active", true).order("name"),
