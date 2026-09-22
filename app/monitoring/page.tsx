@@ -70,15 +70,36 @@ export default function Monitoring() {
     // Monitoring reads Finalized Weekly Planning through a SECURITY DEFINER RPC.
     // The RPC enforces branch access with private.has_branch_access(), so this page
     // does not depend on PostgREST applying weekly_planning RLS correctly.
-    const { data, error } = await supabase.rpc("get_monitoring_finalized");
-    if (error) {
-      console.error("[Monitoring] get_monitoring_finalized RPC failed:", error);
+    // Supabase/PostgREST membatasi response API menjadi maksimal 1.000 row per request.
+    // Monitoring sudah >1.000 Finalized, jadi ambil bertahap agar sesi tanggal terbaru tidak terpotong.
+    const pageSize = 1000;
+    const allRows: MonitoringRow[] = [];
+    let page = 0;
+    let loadError: string | null = null;
+    while (true) {
+      const from = page * pageSize;
+      const to = from + pageSize - 1;
+      const { data, error } = await supabase
+        .rpc("get_monitoring_finalized")
+        .range(from, to);
+      if (error) {
+        console.error("[Monitoring] get_monitoring_finalized RPC failed:", error);
+        loadError = error.message;
+        break;
+      }
+      const pageRows = (data || []) as MonitoringRow[];
+      allRows.push(...pageRows);
+      if (pageRows.length < pageSize) break;
+      page += 1;
+    }
+
+    if (loadError) {
       setRows([]);
       setStartDate("");
       setEndDate("");
-      setMessage(`Gagal memuat Monitoring: ${error.message}`);
+      setMessage(`Gagal memuat Monitoring: ${loadError}`);
     } else {
-      const nextRows = (data || []) as MonitoringRow[];
+      const nextRows = allRows;
       setRows(nextRows);
       if (nextRows.length) {
         const dates = nextRows.map(x => x.planning_date).sort();
