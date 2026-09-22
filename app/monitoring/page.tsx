@@ -57,9 +57,12 @@ export default function Monitoring() {
     // Monitoring uses Weekly Planning as the canonical source.
     // Fetch Finalized rows explicitly and surface the exact database error instead of
     // silently rendering an empty state when RLS/query/deployment issues occur.
+    const columns = "id,created_at,planning_date,branch_id,mt_id,rombel_id,mapel_id,jenis_sesi,auvi_tv,ld,topik_sub_topik,topik_sub_topik_done,attendance,starchamps,activity_score,report_sessions,foto_kbm,report_wa,auvi_tv_status,ld_status,status";
+    // Fetch accessible Weekly Planning rows first and select Finalized client-side.
+    // This avoids relying on a status filter that can behave differently across
+    // older PostgREST/RLS deployments.
     const { data, error } = await supabase.from("weekly_planning")
-      .select("id,created_at,planning_date,branch_id,mt_id,rombel_id,mapel_id,jenis_sesi,auvi_tv,ld,topik_sub_topik,topik_sub_topik_done,attendance,starchamps,activity_score,report_sessions,foto_kbm,report_wa,auvi_tv_status,ld_status")
-      .eq("status", "Finalized")
+      .select(columns)
       .order("planning_date", { ascending: true })
       .order("created_at", { ascending: true });
     if (error) {
@@ -69,7 +72,7 @@ export default function Monitoring() {
       setEndDate("");
       setMessage(`Gagal memuat Monitoring: ${error.message}`);
     } else {
-      const nextRows = (data || []) as MonitoringRow[];
+      const nextRows = (data || []).filter((row: any) => row.status === "Finalized") as MonitoringRow[];
       setRows(nextRows);
       if (nextRows.length) {
         const dates = nextRows.map(x => x.planning_date).sort();
