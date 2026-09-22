@@ -54,7 +54,7 @@ export default function Monitoring() {
       supabase.from("master_mapel").select("id,name").eq("active", true).order("name"),
     ]);
     setBranches(b.data || []); setMts(mt.data || []); setRombels(r.data || []); setMapels(m.data || []);
-    // Monitoring uses Weekly Planning as the canonical source.
+    // Monitoring uses Weekly Planning as the canonical source. Production deploy trigger: 2026-09-22.
     // Fetch Finalized rows explicitly and surface the exact database error instead of
     // silently rendering an empty state when RLS/query/deployment issues occur.
     const columns = "id,created_at,planning_date,branch_id,mt_id,rombel_id,mapel_id,jenis_sesi,auvi_tv,ld,topik_sub_topik,topik_sub_topik_done,attendance,starchamps,activity_score,report_sessions,foto_kbm,report_wa,auvi_tv_status,ld_status,status";
