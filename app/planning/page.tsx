@@ -174,8 +174,8 @@ export default function PlanningPage() {
   const auviRombels = new Set(sessions.filter((s) => s.auvi_tv).map((s) => s.rombel_id).filter(Boolean)).size;
   const auviCoverage = totalRombels ? Math.round((auviRombels / totalRombels) * 100) : 0;
   const ldCount = sessions.filter((s) => s.ld).length;
-  const ldEligible = branch === ALL_BRANCHES ? branchRows.reduce((total, b) => total + getLDEligibleCount(b.name), 0) : getLDEligibleCount(branch);
-  const ldTarget = branch === ALL_BRANCHES ? getLDWeeklyTargetForBranches(branchRows.map((b) => b.name)) : getLDWeeklyTarget(branch);
+  const ldEligible = branch === ALL_BRANCHES ? BRANCHES.filter((name) => name !== ALL_BRANCHES).reduce((total, name) => total + getLDEligibleCount(name), 0) : getLDEligibleCount(branch);
+  const ldTarget = branch === ALL_BRANCHES ? getLDWeeklyTargetForBranches(BRANCHES.filter((name) => name !== ALL_BRANCHES)) : getLDWeeklyTarget(branch);
 
   function resetForm() {
     setEditingId(null);
