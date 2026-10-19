@@ -142,7 +142,7 @@ export default function Monitoring() {
       !r.report_sessions && "Report Sessions",
       !r.foto_kbm && "Foto KBM",
       !r.report_wa && "Report WA",
-      !r.gadget_collection_status && "Foto pengumpulan gadget",
+      !["Ada", "Online"].includes(String(r.gadget_collection_status || "")) && "Foto pengumpulan gadget",
       !isAuviComplete(r) && "AuVi TV",
       !isLdComplete(r) && "LD",
     ].filter(Boolean) as string[];
@@ -150,7 +150,7 @@ export default function Monitoring() {
 
   const adminDone = (r: MonitoringRow) => {
     if (isSimpleSession(r)) return r.attendance ? 1 : 0;
-    return ADMIN_KEYS.filter(k => Boolean(r[k])).length + (r.gadget_collection_status ? 1 : 0) + (isAuviComplete(r) ? 1 : 0) + (isLdComplete(r) ? 1 : 0);
+    return ADMIN_KEYS.filter(k => Boolean(r[k])).length + (["Ada", "Online"].includes(String(r.gadget_collection_status || "")) ? 1 : 0) + (isAuviComplete(r) ? 1 : 0) + (isLdComplete(r) ? 1 : 0);
   };
   const adminTotal = (r: MonitoringRow) => isSimpleSession(r) ? 1 : ADMIN_KEYS.length + 3;
   const adminPercent = (r: MonitoringRow) => Math.round((adminDone(r) / adminTotal(r)) * 100);
