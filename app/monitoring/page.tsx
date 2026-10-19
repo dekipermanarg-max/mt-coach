@@ -19,6 +19,7 @@ const AUVISTATUSES = [
 ];
 const LDSTATUSES = ["Bukan sesi LD", "Sudah report di CMS", "Belum report ke CMS"];
 const ADMIN_KEYS = ["topik_sub_topik_done", "attendance", "starchamps", "activity_score", "report_sessions", "foto_kbm", "report_wa"] as const;
+const GADGET_STATUSES = ["Ada", "Tidak ada", "Online"] as const;
 
 function formatDate(date: string) {
   return new Intl.DateTimeFormat("id-ID", { weekday: "short", day: "numeric", month: "short", year: "numeric" }).format(new Date(`${date}T00:00:00`));
