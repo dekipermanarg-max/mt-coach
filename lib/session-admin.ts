@@ -38,7 +38,7 @@ export function isLdComplete(session: Pick<SessionAdminFields, "ld_status">) {
 
 export function isSessionAdminComplete(session: SessionAdminFields) {
   if (isSimpleSession(session)) return Boolean(session.attendance);
-  return ADMIN_KEYS.every(key => Boolean(session[key])) && Boolean(session.gadget_collection_status) && isAuviComplete(session) && isLdComplete(session);
+  return ADMIN_KEYS.every(key => Boolean(session[key])) && ["Ada", "Online"].includes(normalizeStatus(session.gadget_collection_status)) && isAuviComplete(session) && isLdComplete(session);
 }
 
 export function getAdminDone(session: SessionAdminFields) {
@@ -46,7 +46,7 @@ export function getAdminDone(session: SessionAdminFields) {
   return ADMIN_KEYS.filter(key => Boolean(session[key])).length +
     (isAuviComplete(session) ? 1 : 0) +
     (isLdComplete(session) ? 1 : 0) +
-    (session.gadget_collection_status ? 1 : 0);
+    (["Ada", "Online"].includes(normalizeStatus(session.gadget_collection_status)) ? 1 : 0);
 }
 
 export function getAdminTotal(session: Pick<SessionAdminFields, "jenis_sesi">) {
@@ -67,7 +67,7 @@ export function getMissingAdmin(session: SessionAdminFields) {
     !session.report_sessions && "Report Sessions",
     !session.foto_kbm && "Foto KBM",
     !session.report_wa && "Report WA",
-    !session.gadget_collection_status && "Foto pengumpulan gadget",
+    !["Ada", "Online"].includes(normalizeStatus(session.gadget_collection_status)) && "Foto pengumpulan gadget",
     !isAuviComplete(session) && "AuVi TV",
     !isLdComplete(session) && "LD",
   ].filter(Boolean) as string[];
