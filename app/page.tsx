@@ -19,7 +19,7 @@ type SessionRow = {
   jenis_sesi: string; status?: string | null; auvi_tv: boolean; ld: boolean;
   auvi_tv_status: string | null; ld_status: string | null; attendance: boolean;
   topik_sub_topik_done: boolean; starchamps: boolean; activity_score: boolean;
-  report_sessions: boolean; foto_kbm: boolean; report_wa: boolean;
+  report_sessions: boolean; foto_kbm: boolean; report_wa: boolean; gadget_collection_status: string | null;
 };
 
 function formatDate(date: string) {
@@ -40,6 +40,7 @@ function adminComplete(s: SessionRow) {
     s.report_sessions &&
     s.foto_kbm &&
     s.report_wa &&
+    s.gadget_collection_status &&
     s.auvi_tv_status &&
     (s.ld_status === "Bukan sesi LD" || s.ld_status === "Sudah report di CMS")
   );
@@ -66,7 +67,7 @@ export default function Home() {
       const [b, mt, s] = await Promise.all([
         supabase.from("branches").select("id,name,active").eq("active", true).order("name"),
         supabase.from("master_mt").select("id,name,branch_id,active").eq("active", true).order("name"),
-        supabase.from("weekly_planning").select("id,planning_date,branch_id,mt_id,rombel_id,jenis_sesi,status,auvi_tv,ld,auvi_tv_status,ld_status,attendance,topik_sub_topik_done,starchamps,activity_score,report_sessions,foto_kbm,report_wa").eq("status", "Finalized").gte("planning_date", startDate).lte("planning_date", endDate).order("planning_date", { ascending: false }),
+        supabase.from("weekly_planning").select("id,planning_date,branch_id,mt_id,rombel_id,jenis_sesi,status,auvi_tv,ld,auvi_tv_status,ld_status,attendance,topik_sub_topik_done,starchamps,activity_score,report_sessions,foto_kbm,report_wa,gadget_collection_status").eq("status", "Finalized").gte("planning_date", startDate).lte("planning_date", endDate).order("planning_date", { ascending: false }),
       ]);
       setBranches((b.data || []) as MasterRow[]);
       setMts((mt.data || []) as MasterRow[]);
