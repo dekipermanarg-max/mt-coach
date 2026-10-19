@@ -7,6 +7,7 @@ export type SessionAdminFields = {
   report_sessions: boolean | null | undefined;
   foto_kbm: boolean | null | undefined;
   report_wa: boolean | null | undefined;
+  gadget_collection_status: string | null | undefined;
   auvi_tv_status: string | null | undefined;
   ld_status: string | null | undefined;
 };
@@ -37,18 +38,19 @@ export function isLdComplete(session: Pick<SessionAdminFields, "ld_status">) {
 
 export function isSessionAdminComplete(session: SessionAdminFields) {
   if (isSimpleSession(session)) return Boolean(session.attendance);
-  return ADMIN_KEYS.every(key => Boolean(session[key])) && isAuviComplete(session) && isLdComplete(session);
+  return ADMIN_KEYS.every(key => Boolean(session[key])) && Boolean(session.gadget_collection_status) && isAuviComplete(session) && isLdComplete(session);
 }
 
 export function getAdminDone(session: SessionAdminFields) {
   if (isSimpleSession(session)) return session.attendance ? 1 : 0;
   return ADMIN_KEYS.filter(key => Boolean(session[key])).length +
     (isAuviComplete(session) ? 1 : 0) +
-    (isLdComplete(session) ? 1 : 0);
+    (isLdComplete(session) ? 1 : 0) +
+    (session.gadget_collection_status ? 1 : 0);
 }
 
 export function getAdminTotal(session: Pick<SessionAdminFields, "jenis_sesi">) {
-  return isSimpleSession(session) ? 1 : ADMIN_KEYS.length + 2;
+  return isSimpleSession(session) ? 1 : ADMIN_KEYS.length + 3;
 }
 
 export function getAdminPercent(session: SessionAdminFields) {
@@ -65,6 +67,7 @@ export function getMissingAdmin(session: SessionAdminFields) {
     !session.report_sessions && "Report Sessions",
     !session.foto_kbm && "Foto KBM",
     !session.report_wa && "Report WA",
+    !session.gadget_collection_status && "Foto pengumpulan gadget",
     !isAuviComplete(session) && "AuVi TV",
     !isLdComplete(session) && "LD",
   ].filter(Boolean) as string[];
