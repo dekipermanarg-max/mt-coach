@@ -8,7 +8,7 @@ type MasterRow = { id: string; name: string };
 type MonitoringRow = {
   id: string; created_at: string; planning_date: string; branch_id: string; mt_id: string | null; rombel_id: string | null; mapel_id: string | null;
   jenis_sesi: string; auvi_tv: boolean; ld: boolean; topik_sub_topik: string | null; topik_sub_topik_done: boolean;
-  attendance: boolean; starchamps: boolean; activity_score: boolean; report_sessions: boolean; foto_kbm: boolean; report_wa: boolean;
+  attendance: boolean; starchamps: boolean; activity_score: boolean; report_sessions: boolean; foto_kbm: boolean; report_wa: boolean; gadget_collection_status: string | null;
   auvi_tv_status: string | null; ld_status: string | null;
 };
 
@@ -142,6 +142,7 @@ export default function Monitoring() {
       !r.report_sessions && "Report Sessions",
       !r.foto_kbm && "Foto KBM",
       !r.report_wa && "Report WA",
+      !r.gadget_collection_status && "Foto pengumpulan gadget",
       !isAuviComplete(r) && "AuVi TV",
       !isLdComplete(r) && "LD",
     ].filter(Boolean) as string[];
@@ -149,9 +150,9 @@ export default function Monitoring() {
 
   const adminDone = (r: MonitoringRow) => {
     if (isSimpleSession(r)) return r.attendance ? 1 : 0;
-    return ADMIN_KEYS.filter(k => Boolean(r[k])).length + (isAuviComplete(r) ? 1 : 0) + (isLdComplete(r) ? 1 : 0);
+    return ADMIN_KEYS.filter(k => Boolean(r[k])).length + (r.gadget_collection_status ? 1 : 0) + (isAuviComplete(r) ? 1 : 0) + (isLdComplete(r) ? 1 : 0);
   };
-  const adminTotal = (r: MonitoringRow) => isSimpleSession(r) ? 1 : ADMIN_KEYS.length + 2;
+  const adminTotal = (r: MonitoringRow) => isSimpleSession(r) ? 1 : ADMIN_KEYS.length + 3;
   const adminPercent = (r: MonitoringRow) => Math.round((adminDone(r) / adminTotal(r)) * 100);
 
   const filtered = useMemo(() => rows.filter(r =>
@@ -235,6 +236,7 @@ export default function Monitoring() {
         activityScore: Boolean(row.activity_score),
         reportSessions: Boolean(row.report_sessions),
         fotoKbm: Boolean(row.foto_kbm),
+        fotoPengumpulanGadget: row.gadget_collection_status || "",
         reportWa: Boolean(row.report_wa),
         auviTvStatus: row.auvi_tv_status || "",
         ldStatus: row.ld_status || "",
