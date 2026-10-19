@@ -7,7 +7,7 @@ export type SessionAdminFields = {
   report_sessions: boolean | null | undefined;
   foto_kbm: boolean | null | undefined;
   report_wa: boolean | null | undefined;
-  gadget_collection_status: string | null | undefined;
+  gadget_collection_status?: string | null | undefined;
   auvi_tv_status: string | null | undefined;
   ld_status: string | null | undefined;
 };
