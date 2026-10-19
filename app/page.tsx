@@ -40,7 +40,7 @@ function adminComplete(s: SessionRow) {
     s.report_sessions &&
     s.foto_kbm &&
     s.report_wa &&
-    s.gadget_collection_status &&
+    ["Ada", "Online"].includes(String(s.gadget_collection_status || "")) &&
     s.auvi_tv_status &&
     (s.ld_status === "Bukan sesi LD" || s.ld_status === "Sudah report di CMS")
   );
