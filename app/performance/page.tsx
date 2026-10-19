@@ -18,7 +18,7 @@ type Branch = { id: string; name: string };
 type Session = {
   id: string; planning_date: string; branch_id: string; mt_id: string | null; rombel_id: string | null; jenis_sesi: string;
   attendance: boolean; topik_sub_topik_done: boolean; starchamps: boolean; activity_score: boolean;
-  report_sessions: boolean; foto_kbm: boolean; report_wa: boolean; auvi_tv_status: string | null; ld_status: string | null; ld: boolean;
+  report_sessions: boolean; foto_kbm: boolean; report_wa: boolean; gadget_collection_status: string | null; auvi_tv_status: string | null; ld_status: string | null; ld: boolean;
 };
 function formatDate(value: string) { return value ? new Date(`${value}T00:00:00`).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : ""; }
 function defaultStart() { const d = new Date(); d.setDate(d.getDate() - 6); return d.toISOString().slice(0, 10); }
@@ -32,7 +32,7 @@ export default function Performance() {
   const [loading, setLoading] = useState(true); const [error, setError] = useState(""); const [exporting, setExporting] = useState(false); const [exportMessage, setExportMessage] = useState(""); const [statusFilters, setStatusFilters] = useState<string[]>([]); const [expandedMt, setExpandedMt] = useState<string | null>(null);
   useEffect(() => { async function load() { setLoading(true); setError(""); const [mtRes, branchRes, sessionRes] = await Promise.all([
     supabase.from("master_mt").select("id,name,branch_id").eq("active", true).order("name"), supabase.from("branches").select("id,name").eq("active", true).order("name"),
-    supabase.from("weekly_planning").select("id,planning_date,branch_id,mt_id,rombel_id,jenis_sesi,attendance,topik_sub_topik_done,starchamps,activity_score,report_sessions,foto_kbm,report_wa,auvi_tv_status,ld_status,ld").eq("status", "Finalized").gte("planning_date", startDate).lte("planning_date", endDate).order("planning_date", { ascending: false })
+    supabase.from("weekly_planning").select("id,planning_date,branch_id,mt_id,rombel_id,jenis_sesi,attendance,topik_sub_topik_done,starchamps,activity_score,report_sessions,foto_kbm,report_wa,gadget_collection_status,auvi_tv_status,ld_status,ld").eq("status", "Finalized").gte("planning_date", startDate).lte("planning_date", endDate).order("planning_date", { ascending: false })
   ]); if (mtRes.error || branchRes.error || sessionRes.error) setError(mtRes.error?.message || branchRes.error?.message || sessionRes.error?.message || "Gagal memuat data Performance."); setMts((mtRes.data || []) as MT[]); setBranches((branchRes.data || []) as Branch[]); setSessions((sessionRes.data || []) as Session[]); setLoading(false); } load(); }, [startDate, endDate]);
   const branchId = useMemo(() => branch === "Semua Cabang" ? null : (branches.find(b => b.name === branch)?.id || null), [branch, branches]);
   const branchName = (id: string | null) => branches.find(b => b.id === id)?.name || "—";
