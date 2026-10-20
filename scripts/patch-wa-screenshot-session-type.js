@@ -49,8 +49,8 @@ const newLoop = `      reportRows.forEach((row, index) => {
         drawPill(colX[3] + 8, y + 34, cols[3][1] - 16, 25, sessionType, sessionBg, sessionColor, "800 10px Arial");
 
         const states: Array<"na" | "ok" | "no"> = simple
-          ? ["na", row.attendance ? "ok" : "no", "na", "na", "na", "na", "na", "na", "na"]
-          : [row.topik_sub_topik_done ? "ok" : "no", row.attendance ? "ok" : "no", row.starchamps ? "ok" : "no", row.activity_score ? "ok" : "no", row.report_sessions ? "ok" : "no", row.foto_kbm ? "ok" : "no", row.report_wa ? "ok" : "no", (row.auvi_tv_status && row.auvi_tv_status !== "Tidak connect ke TV") ? "ok" : "no", (row.ld_status && row.ld_status !== "Belum report ke CMS") ? "ok" : "no"];
+          ? ["na", "na", row.attendance ? "ok" : "no", "na", "na", "na", "na", "na", "na", "na"]
+          : [row.topik_sub_topik_done ? "ok" : "no", row.attendance ? "ok" : "no", row.starchamps ? "ok" : "no", row.activity_score ? "ok" : "no", row.report_sessions ? "ok" : "no", row.foto_kbm ? "ok" : "no", row.report_wa ? "ok" : "no", ["Ada", "Online"].includes(String(row.gadget_collection_status || "")) ? "ok" : "no", (row.auvi_tv_status && row.auvi_tv_status !== "Tidak connect ke TV") ? "ok" : "no", (row.ld_status && row.ld_status !== "Belum report ke CMS") ? "ok" : "no"];
         states.forEach((state, i) => {
           const colIndex = 4 + i;
           const col = cols[colIndex];
