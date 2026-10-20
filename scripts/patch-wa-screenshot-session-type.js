@@ -4,8 +4,8 @@ const path = require("path");
 const file = path.join(process.cwd(), "app/monitoring/page.tsx");
 let s = fs.readFileSync(file, "utf8");
 
-const oldCols = 'const cols: Array<[string, number]> = [["MT",170],["Rombel",125],["Mapel",135],["Topik / Subtopik",190],["Attendance",95],["Starchamps",95],["Activity Score",105],["Report Sessions",110],["Foto KBM",90],["Report WA",90],["AuVi TV",90],["LD",65]];';
-const newCols = 'const cols: Array<[string, number]> = [["MT",150],["Rombel",115],["Mapel",120],["Jenis Sesi",115],["Topik / Subtopik",175],["Attendance",85],["Starchamps",85],["Activity Score",95],["Report Sessions",100],["Foto KBM",85],["Report WA",85],["AuVi TV",85],["LD",65]];';
+const oldCols = 'const cols: Array<[string, number]> = [["MT",170],["Rombel",125],["Mapel",135],["Topik / Subtopik",190],["Attendance",95],["Starchamps",95],["Activity Score",105],["Report Sessions",110],["Foto KBM",90],["Report WA",90],["Foto Pengumpulan Gadget",140],["AuVi TV",90],["LD",65]];';
+const newCols = 'const cols: Array<[string, number]> = [["MT",150],["Rombel",115],["Mapel",120],["Jenis Sesi",115],["Topik / Subtopik",175],["Attendance",85],["Starchamps",85],["Activity Score",95],["Report Sessions",100],["Foto KBM",85],["Report WA",85],["Foto Pengumpulan Gadget",125],["AuVi TV",85],["LD",65]];';
 
 if (s.includes(oldCols)) s = s.replace(oldCols, newCols);
 else if (!s.includes(newCols)) throw new Error("Screenshot columns marker not found");
