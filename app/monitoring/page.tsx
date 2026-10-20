@@ -202,6 +202,7 @@ export default function Monitoring() {
         const missing = getMissingAdmin(row);
         lines.push(
           `${number++}. ${nameOf(rombels, row.rombel_id)} · ${nameOf(mapels, row.mapel_id)} · ${row.jenis_sesi}`,
+          `   📱 Foto pengumpulan gadget: ${row.gadget_collection_status || "Belum diisi"}${["Ada", "Online"].includes(String(row.gadget_collection_status || "")) ? " ✅" : " ❌"}`,
           `   ❌ ${missing.join(" · ")}`,
           "👉 Bantu kerjakan drill ... soal benar dan share bukti pengerjaannya di grup ini.",
           "",
