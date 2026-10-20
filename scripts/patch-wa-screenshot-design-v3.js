@@ -92,7 +92,7 @@ const block = `  async function generateReportImage() {
       ctx.fillStyle = "#132d57"; ctx.font = "900 24px Arial"; ctx.fillText(pct + "%", margin + (statW + gap) * 3 + 20, statY + 54);
       ctx.fillStyle = "#dbe4ee"; ctx.fillRect(margin + (statW + gap) * 3 + 86, statY + 47, 360, 8); ctx.fillStyle = "#20b486"; ctx.fillRect(margin + (statW + gap) * 3 + 86, statY + 47, 360 * pct / 100, 8);
 
-      const cols: Array<[string, number]> = [["MT",170],["Rombel",125],["Mapel",135],["Topik / Subtopik",190],["Attendance",95],["Starchamps",95],["Activity Score",105],["Report Sessions",110],["Foto KBM",90],["Report WA",90],["AuVi TV",90],["LD",65]];
+      const cols: Array<[string, number]> = [["MT",170],["Rombel",125],["Mapel",135],["Topik / Subtopik",190],["Attendance",95],["Starchamps",95],["Activity Score",105],["Report Sessions",110],["Foto KBM",90],["Report WA",90],["Foto Pengumpulan Gadget",140],["AuVi TV",90],["LD",65]];
       const tableW = cols.reduce((sum, c) => sum + c[1], 0); const tableX = (width - tableW) / 2; const tableY = headerH;
       const totalTableH = tableHeadH + reportRows.length * rowH;
       fillRound(tableX, tableY, tableW, totalTableH, 18, "#ffffff");
@@ -116,8 +116,8 @@ const block = `  async function generateReportImage() {
         values.forEach((v, i) => { const lines = wrapText(v, cols[i][1] - 22, 2); const startY = y + (lines.length === 1 ? 52 : 40); lines.forEach((line, j) => ctx.fillText(line, colX[i] + 12, startY + j * 18)); });
         const simple = isSimpleSession(row);
         const states: ("ok" | "no" | "na")[] = simple
-          ? ["na", row.attendance ? "ok" : "no", "na", "na", "na", "na", "na", "na", "na"]
-          : [row.topik_sub_topik_done ? "ok" : "no", row.attendance ? "ok" : "no", row.starchamps ? "ok" : "no", row.activity_score ? "ok" : "no", row.report_sessions ? "ok" : "no", row.foto_kbm ? "ok" : "no", row.report_wa ? "ok" : "no", (row.auvi_tv_status && row.auvi_tv_status !== "Tidak connect ke TV") ? "ok" : "no", (row.ld_status && row.ld_status !== "Belum report ke CMS") ? "ok" : "no"];
+          ? ["na", row.attendance ? "ok" : "no", "na", "na", "na", "na", "na", "na", "na", "na"]
+          : [row.topik_sub_topik_done ? "ok" : "no", row.attendance ? "ok" : "no", row.starchamps ? "ok" : "no", row.activity_score ? "ok" : "no", row.report_sessions ? "ok" : "no", row.foto_kbm ? "ok" : "no", row.report_wa ? "ok" : "no", ["Ada", "Online"].includes(String(row.gadget_collection_status || "")) ? "ok" : "no", (row.auvi_tv_status && row.auvi_tv_status !== "Tidak connect ke TV") ? "ok" : "no", (row.ld_status && row.ld_status !== "Belum report ke CMS") ? "ok" : "no"];
         states.forEach((state, i) => drawCheck(colX[4 + i] + cols[4 + i][1] / 2, y + rowH / 2, state));
       });
       ctx.restore();
